@@ -13,19 +13,33 @@ import com.googlecode.javacv.cpp.opencv_core.IplImage;
 
 
 public class Main {
+	// model background using Mixture of Gaussian (see paper)
+	private static BackgroundSubtractor background = new BackgroundSubtractorMOG2();
+	private static CanvasFrame frame;
+	
 	public static void main(String [] args) {
-		CanvasFrame frame = new CanvasFrame("Test");
+		frame = new CanvasFrame("Test");
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		
-		String filename = "/home/charence/Workspace/biomotion-vision/images/set2/1/10/frame0000.jpg";
+		String filename = "/home/charence/Workspace/biomotion-vision/images/set2/1/10/frame%04d.jpg";
+		int start = 0;
+		int end = 10;// 2485;
 		
+		for (int i = start; i <= end; i++) {
+			addImage(String.format(filename, i));
+		}
+	}
+	
+	/**
+	 * Processes an image
+	 * @param filename
+	 */
+	private static void addImage(String filename) {
 		IplImage image = cvLoadImage(filename);
 		if (image != null) {
 			frame.showImage(image);
 			
 			// background subtraction
-			// model background using Mixture of Gaussian (see paper)
-			BackgroundSubtractor background = new BackgroundSubtractorMOG2();
 			CvMat fgmask = CvMat.create(image.height(), image.width());
 			background.apply(image, fgmask, 0.2);
 			// subtract background from original image
