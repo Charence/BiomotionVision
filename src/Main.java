@@ -1,3 +1,5 @@
+import javax.swing.JFrame;
+
 import com.googlecode.javacpp.Loader;
 import com.googlecode.javacv.*;
 import com.googlecode.javacv.cpp.*;
@@ -13,8 +15,9 @@ import com.googlecode.javacv.cpp.opencv_core.IplImage;
 public class Main {
 	public static void main(String [] args) {
 		CanvasFrame frame = new CanvasFrame("Test");
+		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		
-		String filename = "/Users/charence/Workspace/biomotion-vision/images/set2/1/10/frame0000.jpg";
+		String filename = "/home/charence/Workspace/biomotion-vision/images/set2/1/10/frame0000.jpg";
 		
 		IplImage image = cvLoadImage(filename);
 		if (image != null) {
@@ -23,7 +26,7 @@ public class Main {
 			// background subtraction
 			// model background using Mixture of Gaussian (see paper)
 			BackgroundSubtractor background = new BackgroundSubtractorMOG2();
-			CvMat fgmask = new CvMat();
+			CvMat fgmask = CvMat.create(image.height(), image.width());
 			background.apply(image, fgmask, 0.2);
 			// subtract background from original image
 			//foreground = null;
@@ -37,9 +40,9 @@ public class Main {
 			// multiply gradient image of original input with weight map image
 			
 			// snake algorithm
-			cvSaveImage(filename, image);
+			//cvSaveImage(filename, image);
 			cvReleaseImage(image);
 		}
-		frame.dispose();
+		//frame.dispose();
 	}
 }
