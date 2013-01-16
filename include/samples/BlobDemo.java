@@ -33,7 +33,7 @@ public class BlobDemo
         // Read an image.
         for(int k = 0; k < 7; k++)
         {
-            if(k == 0) { RawImage = cvLoadImage("Images/BlackBalls.jpg"); MinArea = 250; ErodeCount = 0; DilateCount = 1; }
+            if(k == 0) { RawImage = cvLoadImage("/home/charence/Workspace/BiomotionVision/include/samples/BlackBalls.jpg"); MinArea = 250; ErodeCount = 0; DilateCount = 1; }
             else if(k == 1) { RawImage = cvLoadImage("Images/Shapes1.jpg"); MinArea = 6; ErodeCount = 0; DilateCount = 1; }
             else if(k == 2) { RawImage = cvLoadImage("Images/Shapes2.jpg"); MinArea = 250; ErodeCount = 0; DilateCount = 1; }
             else if(k == 3) { RawImage = cvLoadImage("Images/Blob1.jpg"); MinArea = 2800; ErodeCount = 1; DilateCount = 1; }

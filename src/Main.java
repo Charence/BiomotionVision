@@ -14,15 +14,12 @@ import com.googlecode.javacv.cpp.opencv_core.IplImage;
 public class Main {
 	// model background using Mixture of Gaussian (see paper)
 	private static BackgroundSubtractor background = new BackgroundSubtractorMOG2();
-	private static CanvasFrame frame;
+	private static CanvasFrame canvas = new CanvasFrame("", 1);   // gamma=1
 	
 	public static void main(String [] args) {
-		frame = new CanvasFrame("Test");
-		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		
 		String filename = "/home/charence/Workspace/biomotion-vision/images/set2/1/10/frame%04d.jpg";
-		int start = 1300;
-		int end = 2310;// 2485;
+		int start = 0;
+		int end = 2485;
 		
 		for (int i = start; i <= end; i+=10) {
 			addImage(String.format(filename, i));
@@ -40,7 +37,7 @@ public class Main {
 			
 			// background subtraction
 			IplImage fgmask = IplImage.create(image.height(), image.width(), image.depth(), 1);
-			background.apply(image, fgmask, 0.2);
+			background.apply(image, fgmask, 0.1);
 			// subtract background from original image
 			IplImage bgmask = IplImage.create(image.height(), image.width(), image.depth(), 1);
 			background.getBackgroundImage(image);
@@ -87,7 +84,8 @@ public class Main {
 	}
 	
 	public static void ShowImage(IplImage image, String caption, int width, int height) {
-		CanvasFrame canvas = new CanvasFrame(caption, 1);   // gamma=1
+		//CanvasFrame canvas = new CanvasFrame(caption, 1);   // gamma=1
+		canvas.setTitle(caption);
 		canvas.setDefaultCloseOperation(javax.swing.JFrame.EXIT_ON_CLOSE);
 		canvas.setCanvasSize(width, height);
 		canvas.showImage(image);
