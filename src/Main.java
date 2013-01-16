@@ -21,7 +21,7 @@ public class Main {
 		int start = 0;
 		int end = 2485;
 		
-		for (int i = start; i <= end; i+=10) {
+		for (int i = start; i <= end; i++) {
 			addImage(String.format(filename, i));
 		}
 	}
@@ -37,13 +37,13 @@ public class Main {
 			
 			// background subtraction
 			IplImage fgmask = IplImage.create(image.height(), image.width(), image.depth(), 1);
-			background.apply(image, fgmask, 0.1);
+			background.apply(image, fgmask, 0.01);
 			// subtract background from original image
 			IplImage bgmask = IplImage.create(image.height(), image.width(), image.depth(), 1);
 			background.getBackgroundImage(image);
 			//frame.showImage(fgmask);
 			//frame.showImage
-			ShowImage(image, "");
+			ShowImage(image, "Background " + filename);
 			
 			// edge information
 			
