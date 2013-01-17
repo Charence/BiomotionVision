@@ -1,3 +1,5 @@
+import java.util.HashMap;
+
 import javax.swing.JFrame;
 
 import com.googlecode.javacpp.Loader;
@@ -14,15 +16,22 @@ import com.googlecode.javacv.cpp.opencv_core.IplImage;
 public class Main {
 	// model background using Mixture of Gaussian (see paper)
 	private static BackgroundSubtractor background = new BackgroundSubtractorMOG2();
-	private static CanvasFrame canvas = new CanvasFrame("", 1);   // gamma=1
+	//private static CanvasFrame canvas = new CanvasFrame("", 1);   // gamma=1
+	private static HashMap<String, CanvasFrame> canvases = new HashMap<String, CanvasFrame>();
 	
 	public static void main(String [] args) {
 		String filename = "/home/charence/Workspace/biomotion-vision/images/set2/1/10/frame%04d.jpg";
 		int start = 0;
 		int end = 2485;
 		
+		// process sequence
 		for (int i = start; i <= end; i++) {
 			addImage(String.format(filename, i));
+		}
+		
+		// signal end of sequence
+		for (CanvasFrame canvas : canvases.values()) {
+			canvas.setTitle(canvas.getTitle() + " - done");
 		}
 	}
 	
@@ -36,14 +45,15 @@ public class Main {
 			//frame.showImage(image);
 			
 			// background subtraction
-			IplImage fgmask = IplImage.create(image.height(), image.width(), image.depth(), 1);
+			IplImage fgmask = IplImage.create(image.width(), image.height(), image.depth(), 1);
 			background.apply(image, fgmask, 0.01);
 			// subtract background from original image
-			IplImage bgmask = IplImage.create(image.height(), image.width(), image.depth(), 1);
-			background.getBackgroundImage(image);
+			IplImage bgmask = IplImage.create(image.width(), image.height(), image.depth(), 3);
+			background.getBackgroundImage(bgmask);
 			//frame.showImage(fgmask);
 			//frame.showImage
-			ShowImage(image, "Background " + filename);
+			ShowImage(fgmask, "Foreground");
+			ShowImage(bgmask, "Background");
 			
 			// edge information
 			
@@ -84,9 +94,13 @@ public class Main {
 	}
 	
 	public static void ShowImage(IplImage image, String caption, int width, int height) {
-		//CanvasFrame canvas = new CanvasFrame(caption, 1);   // gamma=1
-		canvas.setTitle(caption);
-		canvas.setDefaultCloseOperation(javax.swing.JFrame.EXIT_ON_CLOSE);
+		CanvasFrame canvas = canvases.get(caption);
+		if (null == canvas) {
+			canvas = new CanvasFrame("", 1); // gamma = 1
+			canvas.setDefaultCloseOperation(javax.swing.JFrame.EXIT_ON_CLOSE);
+			canvases.put(caption, canvas);
+		}
+		canvas.setTitle(caption); // + "" + canvas.getUpdateCount());
 		canvas.setCanvasSize(width, height);
 		canvas.showImage(image);
 	}
