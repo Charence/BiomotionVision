@@ -15,7 +15,7 @@ import com.googlecode.javacv.cpp.opencv_core.IplImage;
 
 public class Main {
 	// model background using Mixture of Gaussian (see paper)
-	private static BackgroundSubtractor background = new BackgroundSubtractorMOG2();
+	private static BackgroundSubtractor bgmodel = new BackgroundSubtractorMOG2();
 	//private static CanvasFrame canvas = new CanvasFrame("", 1);   // gamma=1
 	private static HashMap<String, CanvasFrame> canvases = new HashMap<String, CanvasFrame>();
 	
@@ -44,18 +44,21 @@ public class Main {
 	private static void addImage(String filename) {
 		IplImage image = cvLoadImage(filename);
 		if (image != null) {
-			//frame.showImage(image);
-			
 			// background subtraction
 			IplImage fgmask = IplImage.create(image.width(), image.height(), image.depth(), 1);
-			background.apply(image, fgmask, 0.01);
+			bgmodel.apply(image, fgmask, 0.001);
+			cvSmooth(fgmask, fgmask, CV_GAUSSIAN, 5);
+			IplImage background = IplImage.create(image.width(), image.height(), image.depth(), 3);
+			bgmodel.getBackgroundImage(background);
 			// subtract background from original image
-			IplImage bgmask = IplImage.create(image.width(), image.height(), image.depth(), 3);
-			background.getBackgroundImage(bgmask);
-			//frame.showImage(fgmask);
-			//frame.showImage
-			ShowImage(fgmask, "Foreground");
-			ShowImage(bgmask, "Background");
+			IplImage foreground = IplImage.create(image.width(), image.height(), image.depth(), 3);
+			cvNot(fgmask, fgmask);
+			//cvSubS(image, CV_RGB(0,0,0), foreground, fgmask);
+			cvSub(image, image, foreground, fgmask);
+			//ShowImage(image, "Original");
+			//ShowImage(foreground, "Foreground");
+			ShowImage(fgmask, "fgmask");
+			ShowImage(background, "Background");
 			
 			// edge information
 			
