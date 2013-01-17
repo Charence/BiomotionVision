@@ -24,7 +24,7 @@ public class Main {
 		if (System.getProperty("os.name").toLowerCase().indexOf("mac") >= 0)
 			filename = filename.replaceAll("home", "Users");
 		int start = 0;
-		int end = 2485;
+		int end = 2485; // (2) 2739; // (1) 2485;
 		
 		// process sequence
 		for (int i = start; i <= end; i++) {
@@ -55,17 +55,32 @@ public class Main {
 			cvNot(fgmask, fgmask);
 			//cvSubS(image, CV_RGB(0,0,0), foreground, fgmask);
 			cvSub(image, image, foreground, fgmask);
-			//ShowImage(image, "Original");
+			ShowImage(image, "Original");
 			//ShowImage(foreground, "Foreground");
-			ShowImage(fgmask, "fgmask");
 			ShowImage(background, "Background");
+			ShowImage(fgmask, "fgmask");
 			
 			// edge information
+			// http://docs.opencv.org/doc/tutorials/imgproc/imgtrans/canny_detector/canny_detector.html
+			IplImage edgeMask = IplImage.create(image.width(), image.height(), image.depth(), 1);
+			int lowThreshold = 100;
+			int ratio = 3;
+			int kernelSize = 3;
+			blur(fgmask, edgeMask,  cvSize(3,3), cvPoint(-1,1), BORDER_DEFAULT);
+			cvCanny(edgeMask, edgeMask, lowThreshold, lowThreshold*ratio, kernelSize);
+			//IplImage edges = IplImage.create(image.width(), image.height(), image.depth(), 3);
+			//image.copyTo(edges, edgeMask);
+			ShowImage(edgeMask, "Edges");
 			
 			// weight map and weighted-gradient image
 			// apply Gaussian filter (size = 9 and sd = 1.5) to edge information from foreground image
 			// create Gaussian filter
+			IplImage weightMap = IplImage.create(image.width(), image.height(), image.depth(), 1);
+			CvSize weightMapKernelSize = cvSize(9, 9);
+			double sigma = 1.5;
 			// filter
+			GaussianBlur(edgeMask, weightMap, weightMapKernelSize, sigma, sigma, BORDER_DEFAULT);
+			ShowImage(weightMap, "Weight Map");
 			// multiply gradient image of original input with weight map image
 			
 			// snake algorithm
