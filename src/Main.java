@@ -21,8 +21,12 @@ public class Main {
 	
 	public static void main(String [] args) {
 		String filename = "/home/charence/Workspace/biomotion-vision/images/set2/1/10/frame%04d.jpg";
+		// is it my mac?
 		if (System.getProperty("os.name").toLowerCase().indexOf("mac") >= 0)
 			filename = filename.replaceAll("home", "Users");
+		// is it on doc?
+		if (System.getProperty("user.home").toLowerCase().indexOf("homes") >= 0)
+			filename = "/media/Charence500/Data/20121221/10/1/frame%04d.jpg";
 		int start = 0;
 		int end = 2485; // (2) 2739; // (1) 2485;
 		
