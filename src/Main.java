@@ -57,20 +57,20 @@ public class Main {
 		IplImage image = cvLoadImage(filename);
 		if (image != null) {
 			// background subtraction
-			IplImage fgmask = IplImage.create(image.width(), image.height(), image.depth(), 1);
-			bgmodel.apply(image, fgmask, 0.001);
-			cvSmooth(fgmask, fgmask, CV_GAUSSIAN, 5);
+			IplImage fgMask = IplImage.create(image.width(), image.height(), image.depth(), 1);
+			bgmodel.apply(image, fgMask, 0.001);
+			cvSmooth(fgMask, fgMask, CV_GAUSSIAN, 5);
 			IplImage background = IplImage.create(image.width(), image.height(), image.depth(), 3);
 			bgmodel.getBackgroundImage(background);
 			// subtract background from original image
 			IplImage foreground = IplImage.create(image.width(), image.height(), image.depth(), 3);
-			cvNot(fgmask, fgmask);
+			cvNot(fgMask, fgMask);
 			//cvSubS(image, CV_RGB(0,0,0), foreground, fgmask);
-			cvSub(image, image, foreground, fgmask);
+			cvSub(image, image, foreground, fgMask);
 			ShowImage(image, "Original");
 			//ShowImage(foreground, "Foreground");
 			ShowImage(background, "Background");
-			ShowImage(fgmask, "fgmask");
+			ShowImage(fgMask, "fgmask");
 			
 			// edge information
 			// http://docs.opencv.org/doc/tutorials/imgproc/imgtrans/canny_detector/canny_detector.html
@@ -78,7 +78,7 @@ public class Main {
 			int lowThreshold = 100;
 			int ratio = 3;
 			int kernelSize = 3;
-			blur(fgmask, edgeMask,  cvSize(3,3), cvPoint(-1,1), BORDER_DEFAULT);
+			blur(fgMask, edgeMask,  cvSize(3,3), cvPoint(-1,1), BORDER_DEFAULT);
 			cvCanny(edgeMask, edgeMask, lowThreshold, lowThreshold*ratio, kernelSize);
 			//IplImage edges = IplImage.create(image.width(), image.height(), image.depth(), 3);
 			//image.copyTo(edges, edgeMask);
@@ -94,6 +94,21 @@ public class Main {
 			GaussianBlur(edgeMask, weightMap, weightMapKernelSize, sigma, sigma, BORDER_DEFAULT);
 			ShowImage(weightMap, "Weight Map");
 			// multiply gradient image of original input with weight map image
+			// gradient image
+			IplImage gradient = IplImage.create(image.width(), image.height(), image.depth(), 3);
+			int xorder = 1;
+			int yorder = 1;
+			cvSobel(image, gradient, xorder, yorder, 3);
+			ShowImage(gradient, "Gradient Image");
+			// weighted-gradient image
+			IplImage weightedGradient = IplImage.create(image.width(), image.height(), image.depth(), 3);
+			//IplImage weightMapT = IplImage.create(weightMap.height(), weightMap.width(), weightMap.depth(), 3);
+			//cvTranspose(weightMap, weightMapT);
+			//cvMultiplyAcc(gradient, weightMapT, weightedGradient, null);
+			IplImage colourWeightMap = IplImage.create(image.width(), image.height(), image.depth(), 3);
+			cvCvtColor(weightMap, colourWeightMap, CV_GRAY2BGR);
+			cvMul(gradient, colourWeightMap, weightedGradient, 1);
+			ShowImage(weightedGradient, "Weighted-Gradient Image");
 			
 			// snake algorithm
 			//cvSaveImage(filename, image);
