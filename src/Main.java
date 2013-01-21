@@ -16,8 +16,10 @@ import com.googlecode.javacv.cpp.opencv_core.IplImage;
 public class Main {
 	// model background using Mixture of Gaussian (see paper)
 	private static BackgroundSubtractor bgmodel = new BackgroundSubtractorMOG2();
+	private static double learningRate = 0.001;
 	//private static CanvasFrame canvas = new CanvasFrame("", 1);   // gamma=1
 	private static HashMap<String, CanvasFrame> canvases = new HashMap<String, CanvasFrame>();
+	private static CvMemStorage contourStorage = CvMemStorage.create();
 	
 	public static void main(String [] args) {
 		int persons = 1;
@@ -40,6 +42,7 @@ public class Main {
 		
 		// process sequence
 		for (int i = start; i <= end; i++) {
+			//learningRate = 1/Math.log(i+1);
 			addImage(String.format(filename, i));
 		}
 		
@@ -58,13 +61,14 @@ public class Main {
 		if (image != null) {
 			// background subtraction
 			IplImage fgMask = IplImage.create(image.width(), image.height(), image.depth(), 1);
-			bgmodel.apply(image, fgMask, 0.001);
+			bgmodel.apply(image, fgMask, learningRate); //0.001);
 			cvSmooth(fgMask, fgMask, CV_GAUSSIAN, 5);
 			IplImage background = IplImage.create(image.width(), image.height(), image.depth(), 3);
 			bgmodel.getBackgroundImage(background);
 			// subtract background from original image
 			IplImage foreground = IplImage.create(image.width(), image.height(), image.depth(), 3);
 			cvNot(fgMask, fgMask);
+			cvThreshold(fgMask, fgMask, 127, 255, CV_THRESH_BINARY);
 			//cvSubS(image, CV_RGB(0,0,0), foreground, fgmask);
 			cvSub(image, image, foreground, fgMask);
 			ShowImage(image, "Original");
@@ -111,6 +115,17 @@ public class Main {
 			ShowImage(weightedGradient, "Weighted-Gradient Image");
 			
 			// snake algorithm
+			IplImage greyWeightedGradient = IplImage.create(image.width(), image.height(), IPL_DEPTH_8U, 1);
+			cvCvtColor(weightedGradient, greyWeightedGradient, CV_RGB2GRAY);
+			cvThreshold(greyWeightedGradient, greyWeightedGradient, 127, 255, CV_THRESH_BINARY);
+			// find contour
+			CvSeq contours = new CvSeq(null);
+			cvFindContours(greyWeightedGradient, contourStorage, contours, Loader.sizeof(CvContour.class), CV_RETR_LIST, CV_CHAIN_APPROX_SIMPLE);
+			while (null != contours) {
+				cvDrawContours(image, contours, CV_RGB(Math.random()*255,Math.random()*255,Math.random()*255), cvScalarAll(255), 1, 1, 8, cvPoint(0,0));
+				contours = contours.h_next();
+			}
+			ShowImage(image, "Contours");
 			//cvSaveImage(filename, image);
 			cvReleaseImage(image);
 		}
