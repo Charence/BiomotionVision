@@ -9,6 +9,7 @@ import static com.googlecode.javacv.cpp.opencv_core.*;
 import static com.googlecode.javacv.cpp.opencv_highgui.*;
 import static com.googlecode.javacv.cpp.opencv_imgproc.*;
 import static com.googlecode.javacv.cpp.opencv_video.*;
+import static com.googlecode.javacv.cpp.opencv_legacy.*;
 
 import com.googlecode.javacv.CanvasFrame;
 import com.googlecode.javacv.cpp.opencv_core.IplImage;
@@ -22,7 +23,7 @@ public class Main {
 	private static CvMemStorage contourStorage = CvMemStorage.create();
 	
 	public static void main(String [] args) {
-		int persons = 1;
+		int persons = 2;
 		
 		String filename = "/home/charence/Workspace/biomotion-vision/images/set2/" + persons + "/10/frame%04d.jpg";
 		// is it my mac?
@@ -126,6 +127,8 @@ public class Main {
 				contours = contours.h_next();
 			}
 			ShowImage(image, "Contours");
+			// snake
+			cvSnakeImage(weightedGradient, contours, 1, 1, 2, 3, 4, null, null, 1);
 			//cvSaveImage(filename, image);
 			cvReleaseImage(image);
 		}
