@@ -128,7 +128,8 @@ public class Main {
 			}
 			ShowImage(image, "Contours");
 			// snake
-			cvSnakeImage(weightedGradient, contours, 1, 1, 2, 3, 4, null, null, 1);
+			float[] test = {1};
+			cvSnakeImage(greyWeightedGradient, contours., 1, test, test, test, 1, cvSize(1,1), cvTermCriteria(1, 1, 1.0), 1);
 			//cvSaveImage(filename, image);
 			cvReleaseImage(image);
 		}
