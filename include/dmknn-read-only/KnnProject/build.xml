@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="KNNProject" default="doc" basedir=".">
+
+	<!-- properies -->
+	<property name="src.dir" value="src" />
+	<property name="classes.dir" value="classes" />
+	<property name="dist.dir" value="dist" />
+	<property name="lib.dir" value="lib" />
+	<property name="docs.dir" value="doc" />
+
+	<!-- 初始化任务 -->
+	<target name="init">
+	</target>
+
+	<!-- 编译 -->
+	<target name="compile" depends="init" description="compile the source files">
+		<delete dir="${classes.dir}" />
+		<mkdir dir="${classes.dir}" />
+		<javac srcdir="${src.dir}" destdir="${classes.dir}">
+		</javac>
+	</target>
+
+
+
+	<!-- 打包成jar -->
+	<target name="pack" depends="compile" description="make .jar file">
+		<mkdir dir="${dist.dir}" />
+		<delete dir="{dist.dir}/KNN.jar" />
+		<jar destfile="${dist.dir}/KNN.jar" basedir="${classes.dir}">
+
+			<exclude name="**/*Test.*" />
+			<exclude name="**/Test*.*" />
+
+			<manifest>
+				<attribute name="Main-Class" value="cn.edu.tsinghua.thss.datamining.gui.KnnFrame" />
+			</manifest>
+		</jar>
+	</target>
+
+	<!--
+		     ===================================================================
+		       Creates the API documentation
+		     ===================================================================
+		-->
+	<target name="doc" depends="pack" description="--> creates the API documentation">
+		<!--copy docs 手册... -->
+		<copy todir="${docs.dir}">
+			<fileset dir="${docs.dir}" />
+		</copy>
+
+		<javadoc packagenames="cn.edu.tsinghua.thss.datamining.knn.*" sourcepath="${src.dir}" defaultexcludes="yes" destdir="${docs.dir}" author="true" version="true" use="true" windowtitle="Docs API">
+			<doctitle>
+				<![CDATA[<h1>hello ant Docs API</h1>]]></doctitle>
+		<bottom>
+			<![CDATA[<i>Copyright: School of Software,Tsinghua University</i>]]></bottom>
+	<tag name="todo" scope="all" description="To do:" />
+</javadoc>
+</target>
+</project>

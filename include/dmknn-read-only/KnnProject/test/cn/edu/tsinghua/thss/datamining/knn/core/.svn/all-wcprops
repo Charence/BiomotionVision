@@ -1,0 +1,23 @@
+K 25
+svn:wc:ra_dav:version-url
+V 79
+/svn/!svn/ver/41/trunk/KnnProject/test/cn/edu/tsinghua/thss/datamining/knn/core
+END
+TestClassiferKnn.java
+K 25
+svn:wc:ra_dav:version-url
+V 101
+/svn/!svn/ver/39/trunk/KnnProject/test/cn/edu/tsinghua/thss/datamining/knn/core/TestClassiferKnn.java
+END
+TestEvaluator.java
+K 25
+svn:wc:ra_dav:version-url
+V 98
+/svn/!svn/ver/41/trunk/KnnProject/test/cn/edu/tsinghua/thss/datamining/knn/core/TestEvaluator.java
+END
+TestArffTrans.java
+K 25
+svn:wc:ra_dav:version-url
+V 98
+/svn/!svn/ver/33/trunk/KnnProject/test/cn/edu/tsinghua/thss/datamining/knn/core/TestArffTrans.java
+END

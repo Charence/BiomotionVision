@@ -1,0 +1,29 @@
+K 25
+svn:wc:ra_dav:version-url
+V 82
+/svn/!svn/ver/45/trunk/KnnProject/classes/cn/edu/tsinghua/thss/datamining/knn/core
+END
+ClassifierKnn.class
+K 25
+svn:wc:ra_dav:version-url
+V 102
+/svn/!svn/ver/45/trunk/KnnProject/classes/cn/edu/tsinghua/thss/datamining/knn/core/ClassifierKnn.class
+END
+ClassifierKnnDiscrete.class
+K 25
+svn:wc:ra_dav:version-url
+V 110
+/svn/!svn/ver/45/trunk/KnnProject/classes/cn/edu/tsinghua/thss/datamining/knn/core/ClassifierKnnDiscrete.class
+END
+ArffTransformer.class
+K 25
+svn:wc:ra_dav:version-url
+V 104
+/svn/!svn/ver/45/trunk/KnnProject/classes/cn/edu/tsinghua/thss/datamining/knn/core/ArffTransformer.class
+END
+ClassifierKnnContinuous.class
+K 25
+svn:wc:ra_dav:version-url
+V 112
+/svn/!svn/ver/45/trunk/KnnProject/classes/cn/edu/tsinghua/thss/datamining/knn/core/ClassifierKnnContinuous.class
+END

@@ -1,0 +1,23 @@
+K 25
+svn:wc:ra_dav:version-url
+V 83
+/svn/!svn/ver/45/trunk/KnnProject/classes/cn/edu/tsinghua/thss/datamining/knn/model
+END
+Attribute.class
+K 25
+svn:wc:ra_dav:version-url
+V 99
+/svn/!svn/ver/45/trunk/KnnProject/classes/cn/edu/tsinghua/thss/datamining/knn/model/Attribute.class
+END
+Instance.class
+K 25
+svn:wc:ra_dav:version-url
+V 98
+/svn/!svn/ver/45/trunk/KnnProject/classes/cn/edu/tsinghua/thss/datamining/knn/model/Instance.class
+END
+DataSet.class
+K 25
+svn:wc:ra_dav:version-url
+V 97
+/svn/!svn/ver/45/trunk/KnnProject/classes/cn/edu/tsinghua/thss/datamining/knn/model/DataSet.class
+END
