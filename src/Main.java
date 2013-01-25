@@ -16,7 +16,9 @@ import com.googlecode.javacv.cpp.opencv_core.IplImage;
 
 public class Main {
 	// model background using Mixture of Gaussian (see paper)
-	private static BackgroundSubtractor bgmodel = new BackgroundSubtractorMOG2();
+	private static final int history = 200;
+	private static final int varThreshold = 48;
+	private static BackgroundSubtractorMOG2 bgmodel = new BackgroundSubtractorMOG2(history, varThreshold, true);
 	private static double learningRate = 0.001;
 	//private static CanvasFrame canvas = new CanvasFrame("", 1);   // gamma=1
 	private static HashMap<String, CanvasFrame> canvases = new HashMap<String, CanvasFrame>();
@@ -37,13 +39,16 @@ public class Main {
 		int end = 2485; // (2) 2739; // (1) 2485;
 		switch(persons) {
 			case 1 : end = 2485; break;
-			case 2 : end = 2739; break;
+			case 2 : end = 3739; break;
 			case 3 : end = 4489; break;
 		}
 		
 		// process sequence
 		for (int i = start; i <= end; i++) {
-			//learningRate = 1/Math.log(i+1);
+			learningRate = (i > 200) ? 0.00001 : 0.01;
+			//System.out.println(learningRate);
+			if (i == 154)
+				System.out.println(i);
 			addImage(String.format(filename, i));
 		}
 		
@@ -60,23 +65,59 @@ public class Main {
 	private static void addImage(String filename) {
 		IplImage image = cvLoadImage(filename);
 		if (image != null) {
+			// convert to HSV
+			IplImage imageHSV = IplImage.create(image.width(), image.height(), image.depth(), 3);
+			cvCvtColor(image, imageHSV, CV_RGB2HSV);
+			//IplImage greyImage = IplImage.create(image.width(), image.height(), image.depth(), 1);
+			//cvCvtColor(image, greyImage, CV_BGR2GRAY);
+			//cvCvtColor(greyImage, image, CV_GRAY2BGR);
+			//IplImage blurImage = IplImage.create(image.width(), image.height(), image.depth(), 3);
+			//cvSmooth(image, blurImage, CV_GAUSSIAN, 7);
+			//cvCvtColor(image, image, CV_BGR2HSV);
+			
+			// split channels
+			IplImage imageR = IplImage.create(image.cvSize(), image.depth(), 1);
+			IplImage imageG = IplImage.create(image.cvSize(), image.depth(), 1);
+			IplImage imageB = IplImage.create(image.cvSize(), image.depth(), 1);
+			cvSplit(imageHSV, imageR, imageG, imageB, null);
+			ShowImage(imageR, "Red");
+			ShowImage(imageG, "Green");
+			ShowImage(imageB, "Blue");
+			
 			// background subtraction
 			IplImage fgMask = IplImage.create(image.width(), image.height(), image.depth(), 1);
 			bgmodel.apply(image, fgMask, learningRate); //0.001);
-			cvSmooth(fgMask, fgMask, CV_GAUSSIAN, 5);
+			//cvSmooth(fgMask, fgMask, CV_GAUSSIAN, 5);
+			//cvDilate(fgMask, fgMask, null, 5);
+			//cvErode(fgMask, fgMask, null, 5);
 			IplImage background = IplImage.create(image.width(), image.height(), image.depth(), 3);
 			bgmodel.getBackgroundImage(background);
+			
 			// subtract background from original image
 			IplImage foreground = IplImage.create(image.width(), image.height(), image.depth(), 3);
-			cvNot(fgMask, fgMask);
-			cvThreshold(fgMask, fgMask, 127, 255, CV_THRESH_BINARY);
+			//cvNot(fgMask, fgMask);
+			//cvThreshold(fgMask, fgMask, 128, 255, CV_THRESH_BINARY); //127
 			//cvSubS(image, CV_RGB(0,0,0), foreground, fgmask);
 			cvSub(image, image, foreground, fgMask);
-			ShowImage(image, "Original");
+			ShowImage(imageHSV, "Original");
 			//ShowImage(foreground, "Foreground");
 			ShowImage(background, "Background");
 			ShowImage(fgMask, "fgmask");
 			
+			// contours
+			//IplImage greyForegroundMask = IplImage.create(image.width(), image.height(), IPL_DEPTH_8U, 1);
+			//cvCvtColor(weightedGradient, greyWeightedGradient, CV_RGB2GRAY);
+			//cvThreshold(greyWeightedGradient, greyWeightedGradient, 127, 255, CV_THRESH_BINARY);
+			// find contour
+			CvSeq contours = new CvSeq(new CvPoint());
+			int contourCount = cvFindContours(fgMask, contourStorage, contours, Loader.sizeof(CvContour.class), CV_RETR_LIST, CV_CHAIN_APPROX_SIMPLE);
+			while (null != contours) {
+				cvDrawContours(image, contours, CV_RGB(Math.random()*255,Math.random()*255,Math.random()*255), cvScalarAll(255), 1, CV_FILLED, 8, cvPoint(0,0));
+				contours = (contourCount > 0) ? contours.h_next() : null; // some kind of strange javacv bug...
+			}
+			ShowImage(image, "Contours");
+
+			/*
 			// edge information
 			// http://docs.opencv.org/doc/tutorials/imgproc/imgtrans/canny_detector/canny_detector.html
 			IplImage edgeMask = IplImage.create(image.width(), image.height(), image.depth(), 1);
@@ -120,17 +161,19 @@ public class Main {
 			cvCvtColor(weightedGradient, greyWeightedGradient, CV_RGB2GRAY);
 			cvThreshold(greyWeightedGradient, greyWeightedGradient, 127, 255, CV_THRESH_BINARY);
 			// find contour
-			CvSeq contours = new CvSeq(null);
-			cvFindContours(greyWeightedGradient, contourStorage, contours, Loader.sizeof(CvContour.class), CV_RETR_LIST, CV_CHAIN_APPROX_SIMPLE);
+			CvSeq contours = new CvSeq(new CvPoint());
+			int contourCount = cvFindContours(greyWeightedGradient, contourStorage, contours, Loader.sizeof(CvContour.class), CV_RETR_LIST, CV_CHAIN_APPROX_SIMPLE);
 			while (null != contours) {
 				cvDrawContours(image, contours, CV_RGB(Math.random()*255,Math.random()*255,Math.random()*255), cvScalarAll(255), 1, 1, 8, cvPoint(0,0));
-				contours = contours.h_next();
+				contours = (contourCount > 0) ? contours.h_next() : null; // some kind of strange javacv bug...
 			}
 			ShowImage(image, "Contours");
 			// snake
-			float[] test = {1};
-			cvSnakeImage(greyWeightedGradient, contours., 1, test, test, test, 1, cvSize(1,1), cvTermCriteria(1, 1, 1.0), 1);
-			//cvSaveImage(filename, image);
+			//float[] test = {1};
+			//cvSnakeImage(greyWeightedGradient, contours, 1, test, test, test, 1, cvSize(1,1), cvTermCriteria(1, 1, 1.0), 1);
+			 */
+			
+			//cvSaveImage("result_" + filename, image);
 			cvReleaseImage(image);
 		}
 		//frame.dispose();

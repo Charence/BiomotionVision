@@ -1,4 +1,4 @@
-package de.psychometrica.LDA;
+//package de.psychometrica.LDA;
 
 /**
  * Copyright (c) 2010, Dr. Wolfgang Lenhard, Psychometrica.de
