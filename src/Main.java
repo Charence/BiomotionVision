@@ -96,7 +96,7 @@ public class Main {
 			// subtract background from original image
 			IplImage foreground = IplImage.create(image.width(), image.height(), image.depth(), 3);
 			//cvNot(fgMask, fgMask);
-			//cvThreshold(fgMask, fgMask, 128, 255, CV_THRESH_BINARY); //127
+			cvThreshold(fgMask, fgMask, 128, 255, CV_THRESH_BINARY); //127
 			//cvSubS(image, CV_RGB(0,0,0), foreground, fgmask);
 			cvSub(image, image, foreground, fgMask);
 			ShowImage(imageHSV, "Original");
@@ -113,6 +113,10 @@ public class Main {
 			int contourCount = cvFindContours(fgMask, contourStorage, contours, Loader.sizeof(CvContour.class), CV_RETR_LIST, CV_CHAIN_APPROX_SIMPLE);
 			while (null != contours) {
 				cvDrawContours(image, contours, CV_RGB(Math.random()*255,Math.random()*255,Math.random()*255), cvScalarAll(255), 1, CV_FILLED, 8, cvPoint(0,0));
+				cvCvtSeqToArray(contours, CV_WHOLE_SEQ);
+				//cvRectangle(image, );
+				CvRect rect;
+				//CvRotatedRect asdf;
 				contours = (contourCount > 0) ? contours.h_next() : null; // some kind of strange javacv bug...
 			}
 			ShowImage(image, "Contours");
