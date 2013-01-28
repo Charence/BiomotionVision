@@ -135,10 +135,8 @@ static void addImage(const char* filename) {
 	
 	// rotated rectangles for contour
 	vector<cv::RotatedRect> minRect(contours.size());
-	//vector<cv::Rect> boundRect(contours.size());
 	for (int i = 0; i < contours.size(); i++) {
 		minRect[i] = cv::minAreaRect(cv::Mat(contours[i]));
-		//boundRect[i] = cv::boundingRect(cv::Mat(contours[i]));
 	}
 	
 	// draw contours
@@ -177,9 +175,32 @@ static void addImage(const char* filename) {
 			angle = 2*PI - atan((minRect[i].center.x - imageContours.size().width/2)/(imageContours.size().height/2 - minRect[i].center.y));
 		}
 		angle = angle * 180/PI;
+		/*// extract rotated ROI
+		// http://answers.opencv.org/question/497/extract-a-rotatedrect-area/
+		// get angle and size from bounding box
+		angle = minRect[i].angle;
+		cv::Size rectSize = minRect[i].size;
+		// thanks to http://felix.abecassis.me/2011/10/opencv-rotation-deskewing
+		if (angle < -45) {
+			angle += 90;
+			swap(rectSize.width, rectSize.height);
+		}*/
 		// rotation matrix
 		cv::Mat rotationMatrix = cv::getRotationMatrix2D(minRect[i].center, angle, 1);
 		cv::Mat rotationMatrixInverse = cv::getRotationMatrix2D(minRect[i].center, -angle, 1);
+		/*
+		// perform affine transformation
+		cv::Mat rotated;
+		cv::warpAffine(image, rotated, rotationMatrix, image.size(), cv::INTER_CUBIC);
+		// crop the image
+		cv::Mat cropped;
+		try {
+			cv::getRectSubPix(rotated, rectSize, minRect[i].center, cropped);
+			cv::imshow("Cropped " +i, cropped);
+		}
+		catch (cv::Exception e) {
+		}*/
+		/*
 		// rotate contour
 		cv::Mat contourMat(3, contours[i].size(), CV_64FC1);
 		double* row0 = contourMat.ptr<double>(0);
@@ -191,9 +212,15 @@ static void addImage(const char* filename) {
 			row2[j] = 1;
 		}
 		cv::Mat uprightContour = rotationMatrix * contourMat;
+		cv::imshow("upright " + i, uprightContour);
 		// find bounding box
-		cv::Rect boundRect = cv::boundingRect(uprightContour);
+		try {
+			cv::Rect boundRect = cv::boundingRect(uprightContour);
+		}
+		catch (cv::Exception e) {
+		}*/
 		//rectangle(imageContours, boundRect[i].tl(), boundRect[i].br(), colour, 2, 8, 0);
+		//
 		// define ROI
 		// extract ROI
 	}
