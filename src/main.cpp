@@ -9,13 +9,21 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/calib3d/calib3d.hpp>
+#include <opencv2/video/tracking.hpp>
 
 #define PI 3.14159265
 
+using namespace cv;
 using namespace std;
 
+class ObjectInfo {
+	public:
+		void area() {}
+};
+
 // methods
-static void addImage(const char* filename);
+static vector<ObjectInfo> detectObjects(cv::Mat image);
+static void trackObjects(vector<ObjectInfo>);
 
 // constants
 const int history = 200;
@@ -25,10 +33,13 @@ cv::RNG rng(12345);
 // global vars
 static double learningRate = 0.001;
 static cv::BackgroundSubtractorMOG2 bgmodel;
-// contourstorage
+static cv::KalmanFilter KF(2, 1, 0);
+static cv::Mat state(2, 1, CV_32F); // (phi, delta_phi)
+static cv::Mat processNoise(2, 1, CV_32F);
+static cv::Mat measurement = Mat::zeros(1, 1, CV_32F);
 
 int main(int argc, const char** argv) {
-	int persons = 2;
+	int persons = 1;
 	bgmodel.set("history", history);
 	bgmodel.set("varThreshold", varThreshold);
 	bgmodel.set("detectShadows", true);
@@ -52,24 +63,26 @@ int main(int argc, const char** argv) {
 	for (int i = start; i <= end; i++) {
 		char filename [128];
 		sprintf(filename, filepath, persons, i);
-		learningRate = (i > 200) ? 0.00001 : 0.01;
-		addImage(filename);
-	}
+		cout << "In: " << filename << endl;
+		// load image
+		cv::Mat image = cv::imread(filename);
+		if (image.empty()) {
+			throw runtime_error("Could not load image");
+		}
 
-	// signal end of sequence
-	// loop through canvases and add " - done"
+		// detect objects
+		learningRate = (i > 200) ? 0.00001 : 0.01;
+		vector<ObjectInfo> detectedObjects = detectObjects(image);
+		// track objects
+		trackObjects(detectedObjects);
+		// translate coordinates
+	}
 
 	return 0;
 }
 
-static void addImage(const char* filename) {
-	cout << "In: " << filename << endl;
-
-	// load image
-	cv::Mat image = cv::imread(filename);
-	if (image.empty()) {
-		throw runtime_error("Could not load image");
-	}
+static vector<ObjectInfo> detectObjects(cv::Mat image) {
+	vector<ObjectInfo> objects;
 
 	// convert to HSV
 	cv::Mat imageHSV;
@@ -81,6 +94,7 @@ static void addImage(const char* filename) {
 	// background subtraction
 	cv::Mat fgMask;
 	bgmodel(image, fgMask, learningRate);
+	// tidy foreground mask
 	cv::GaussianBlur(fgMask, fgMask, cv::Size(1, 1), 0, 0);
 	int erosionSize = 5;
 	cv::Mat element = cv::getStructuringElement( cv::MORPH_ELLIPSE,
@@ -88,6 +102,8 @@ static void addImage(const char* filename) {
 		cv::Point( erosionSize, erosionSize ));
 	cv::dilate(fgMask, fgMask, element);
 	cv::erode(fgMask, fgMask, element);
+	cv::erode(fgMask, fgMask, element);
+	cv::dilate(fgMask, fgMask, element);
 	cv::Mat background;
 	bgmodel.getBackgroundImage(background);
 
@@ -175,7 +191,7 @@ static void addImage(const char* filename) {
 			angle = 2*PI - atan((minRect[i].center.x - imageContours.size().width/2)/(imageContours.size().height/2 - minRect[i].center.y));
 		}
 		angle = angle * 180/PI;
-		/*// extract rotated ROI
+		// extract rotated ROI
 		// http://answers.opencv.org/question/497/extract-a-rotatedrect-area/
 		// get angle and size from bounding box
 		angle = minRect[i].angle;
@@ -184,11 +200,10 @@ static void addImage(const char* filename) {
 		if (angle < -45) {
 			angle += 90;
 			swap(rectSize.width, rectSize.height);
-		}*/
+		}
 		// rotation matrix
 		cv::Mat rotationMatrix = cv::getRotationMatrix2D(minRect[i].center, angle, 1);
 		cv::Mat rotationMatrixInverse = cv::getRotationMatrix2D(minRect[i].center, -angle, 1);
-		/*
 		// perform affine transformation
 		cv::Mat rotated;
 		cv::warpAffine(image, rotated, rotationMatrix, image.size(), cv::INTER_CUBIC);
@@ -199,7 +214,7 @@ static void addImage(const char* filename) {
 			cv::imshow("Cropped " +i, cropped);
 		}
 		catch (cv::Exception e) {
-		}*/
+		}
 		/*
 		// rotate contour
 		cv::Mat contourMat(3, contours[i].size(), CV_64FC1);
@@ -225,18 +240,21 @@ static void addImage(const char* filename) {
 		// extract ROI
 	}
 
-	// draw bounding box
-
 	/*cv::imshow("Original", image);
 	cv::imshow("Hue", imageHSVSlices[0]);
 	cv::imshow("Saturation", imageHSVSlices[1]);
 	//cv::imshow("Value", imageHSVSlices[2]);
-	cv::imshow("fgMask", fgMask);
-	cv::imshow("Foreground", foreground);
+	cv::imshow("fgMask", fgMask);*/
+	cv::imshow("Foreground", foreground);/*
 	cv::imshow("Canny", imageCanny);
 	cv::imshow("WeightMap", weightMap);
 	cv::imshow("Gradient Image", imageGradient);
 	cv::imshow("Weighted-Gradient Image", weightedGradient);*/
 	cv::imshow("Contours", imageContours);
 	cvWaitKey(5);
+	
+	return objects;
+}
+
+static void trackObjects(vector<ObjectInfo> detectedObjects) {
 }
