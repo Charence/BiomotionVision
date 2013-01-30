@@ -17,8 +17,21 @@ using namespace cv;
 using namespace std;
 
 class ObjectInfo {
+	cv::RotatedRect boundingBox;
+	//cv::
+	//double size;
+	//int x;
+	//int y;
+	//double angle;
+	double velocity;
 	public:
-		void area() {}
+		cv::Point2f getCentre()	{ return boundingBox.center; }
+		int getX() 		{ return boundingBox.center.x; }
+		int getY() 		{ return boundingBox.center.y; }
+		float getAngle() 	{ return boundingBox.angle; }
+		cv::Size2f getSize() 	{ return boundingBox.size; }
+		//cv::CvBox2D getBox()	{ return boundingBox.box; }
+		double getVelocity() 	{ return velocity; }
 };
 
 // methods
