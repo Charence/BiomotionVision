@@ -17,20 +17,26 @@ using namespace cv;
 using namespace std;
 
 class ObjectInfo {
-	cv::RotatedRect boundingBox;
-	//cv::
-	//double size;
-	//int x;
-	//int y;
-	//double angle;
-	double velocity;
+	protected:
+		cv::RotatedRect boundingBox;
+		vector<cv::Point> contour;
+		double velocity;
 	public:
+		ObjectInfo( cv::RotatedRect boundingBox, vector<cv::Point> contour ) {
+			ObjectInfo( boundingBox, contour, 0 );
+		}
+		ObjectInfo( cv::RotatedRect boundingBox, vector<cv::Point> contour, double velocity ) {
+			this->boundingBox = boundingBox;
+			this->contour     = contour;
+			this->velocity    = velocity;
+		}
 		cv::Point2f getCentre()	{ return boundingBox.center; }
 		int getX() 		{ return boundingBox.center.x; }
 		int getY() 		{ return boundingBox.center.y; }
 		float getAngle() 	{ return boundingBox.angle; }
 		cv::Size2f getSize() 	{ return boundingBox.size; }
 		//cv::CvBox2D getBox()	{ return boundingBox.box; }
+		vector<cv::Point> getContour() { return contour; }
 		double getVelocity() 	{ return velocity; }
 };
 
@@ -204,6 +210,7 @@ static vector<ObjectInfo> detectObjects(cv::Mat image) {
 			angle = 2*PI - atan((minRect[i].center.x - imageContours.size().width/2)/(imageContours.size().height/2 - minRect[i].center.y));
 		}
 		angle = angle * 180/PI;
+		/*
 		// extract rotated ROI
 		// http://answers.opencv.org/question/497/extract-a-rotatedrect-area/
 		// get angle and size from bounding box
@@ -228,6 +235,7 @@ static vector<ObjectInfo> detectObjects(cv::Mat image) {
 		}
 		catch (cv::Exception e) {
 		}
+		*/
 		/*
 		// rotate contour
 		cv::Mat contourMat(3, contours[i].size(), CV_64FC1);
@@ -248,9 +256,10 @@ static vector<ObjectInfo> detectObjects(cv::Mat image) {
 		catch (cv::Exception e) {
 		}*/
 		//rectangle(imageContours, boundRect[i].tl(), boundRect[i].br(), colour, 2, 8, 0);
-		//
-		// define ROI
-		// extract ROI
+
+		// save object
+		ObjectInfo object(minRect[i], contours[i]);
+		objects.push_back(object);
 	}
 
 	/*cv::imshow("Original", image);
@@ -270,4 +279,5 @@ static vector<ObjectInfo> detectObjects(cv::Mat image) {
 }
 
 static void trackObjects(vector<ObjectInfo> detectedObjects) {
+	// 
 }
