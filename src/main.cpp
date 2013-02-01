@@ -11,12 +11,15 @@
 #include <opencv2/calib3d/calib3d.hpp>
 #include <opencv2/video/tracking.hpp>
 
+//#include "object_info.hpp"
+#include "object_tracker.hpp"
+
 #define PI 3.14159265
 
 using namespace cv;
 using namespace std;
 
-class ObjectInfo {
+/*class ObjectInfo {
 	protected:
 		cv::RotatedRect boundingBox;
 		vector<cv::Point> contour;
@@ -38,11 +41,11 @@ class ObjectInfo {
 		//cv::CvBox2D getBox()	{ return boundingBox.box; }
 		vector<cv::Point> getContour() { return contour; }
 		double getVelocity() 	{ return velocity; }
-};
+};*/
 
 // methods
 static vector<ObjectInfo> detectObjects(cv::Mat image);
-static void trackObjects(vector<ObjectInfo>);
+static void trackObjects(vector<ObjectInfo> detectedObjects);
 
 // constants
 const int history = 200;
@@ -56,6 +59,7 @@ static cv::KalmanFilter KF(2, 1, 0);
 static cv::Mat state(2, 1, CV_32F); // (phi, delta_phi)
 static cv::Mat processNoise(2, 1, CV_32F);
 static cv::Mat measurement = Mat::zeros(1, 1, CV_32F);
+//ObjectTracker* objectTracker = new ObjectTracker();
 
 int main(int argc, const char** argv) {
 	int persons = 1;
@@ -93,6 +97,7 @@ int main(int argc, const char** argv) {
 		learningRate = (i > 200) ? 0.00001 : 0.01;
 		vector<ObjectInfo> detectedObjects = detectObjects(image);
 		// track objects
+		//objectTracker->update(detectedObjects);
 		trackObjects(detectedObjects);
 		// translate coordinates
 	}
@@ -279,5 +284,4 @@ static vector<ObjectInfo> detectObjects(cv::Mat image) {
 }
 
 static void trackObjects(vector<ObjectInfo> detectedObjects) {
-	// 
 }
