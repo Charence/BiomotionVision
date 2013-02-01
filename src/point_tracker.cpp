@@ -7,8 +7,6 @@
 
 #include "point_tracker.h"
 
-
-
 PointTracker::PointTracker( ) : KalmanFilter( 12.0f ), dynam_params( 4 ), measure_params( 2 ), error_cov_post( 4, 4, CV_32FC1 ), init_transition_mat( 4, 4, CV_32FC1 ), measurement_mat( 2, 4, CV_32FC1 ), init_process_noise_cov( 4, 4, CV_32FC1 ), measurement_noise_cov( 2, 2, CV_32FC1 ), dist_thresh( 3.0f )
 {
 
@@ -196,4 +194,18 @@ void PointTracker::createNewFilters( const std::vector< cv::Mat > &observations 
       std::cout << "New filter created with id " << key << std::endl;
     }
 
+}
+
+double PointTracker::getLastPredictionTime() {
+	return lastPredictionTime;
+}
+
+void PointTracker::setLastPredictionTime(double lastPredictionTime) {
+	this->lastPredictionTime = lastPredictionTime;
+}
+
+double PointTracker::updateLastPredictionTime() {
+	double lastPredictionTime = this->lastPredictionTime;
+	setLastPredictionTime(static_cast<double>(cv::getTickCount()));
+	return lastPredictionTime;
 }

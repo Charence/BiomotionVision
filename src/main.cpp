@@ -13,35 +13,12 @@
 
 //#include "object_info.hpp"
 #include "object_tracker.hpp"
+#include "point_tracker.h"
 
 #define PI 3.14159265
 
 using namespace cv;
 using namespace std;
-
-/*class ObjectInfo {
-	protected:
-		cv::RotatedRect boundingBox;
-		vector<cv::Point> contour;
-		double velocity;
-	public:
-		ObjectInfo( cv::RotatedRect boundingBox, vector<cv::Point> contour ) {
-			ObjectInfo( boundingBox, contour, 0 );
-		}
-		ObjectInfo( cv::RotatedRect boundingBox, vector<cv::Point> contour, double velocity ) {
-			this->boundingBox = boundingBox;
-			this->contour     = contour;
-			this->velocity    = velocity;
-		}
-		cv::Point2f getCentre()	{ return boundingBox.center; }
-		int getX() 		{ return boundingBox.center.x; }
-		int getY() 		{ return boundingBox.center.y; }
-		float getAngle() 	{ return boundingBox.angle; }
-		cv::Size2f getSize() 	{ return boundingBox.size; }
-		//cv::CvBox2D getBox()	{ return boundingBox.box; }
-		vector<cv::Point> getContour() { return contour; }
-		double getVelocity() 	{ return velocity; }
-};*/
 
 // methods
 static vector<ObjectInfo> detectObjects(cv::Mat image);
@@ -60,13 +37,12 @@ static cv::Mat state(2, 1, CV_32F); // (phi, delta_phi)
 static cv::Mat processNoise(2, 1, CV_32F);
 static cv::Mat measurement = Mat::zeros(1, 1, CV_32F);
 //ObjectTracker* objectTracker = new ObjectTracker();
+PointTracker pointTracker;
 
 int main(int argc, const char** argv) {
 	int persons = 1;
-	bgmodel.set("history", history);
-	bgmodel.set("varThreshold", varThreshold);
-	bgmodel.set("detectShadows", true);
 
+	// setup path to file
 	char* filepath;
 	filepath = "/home/charence/Workspace/biomotion-vision/images/set2/%d/10/frame%04d.jpg";
 	// is it my mac?
@@ -81,6 +57,14 @@ int main(int argc, const char** argv) {
 		case 2: end = 3621; break;
 		case 3: end = 4489; break;
 	}
+
+	// setup background model
+	bgmodel.set("history", history);
+	bgmodel.set("varThreshold", varThreshold);
+	bgmodel.set("detectShadows", true);
+
+	// setup tracker
+	pointTracker.setArguments(3.5, 1.5);
 
 	// process sequence
 	for (int i = start; i <= end; i++) {
@@ -284,4 +268,15 @@ static vector<ObjectInfo> detectObjects(cv::Mat image) {
 }
 
 static void trackObjects(vector<ObjectInfo> detectedObjects) {
+	// convert format of detected objects
+	const vector<cv::Mat > observations;
+	// lock the tracking class as we are updating the Kalman filters
+	// calculate the time since the last prediction
+	const double timeDiff = (static_cast<double>(cv::getTickCount()) - pointTracker.getLastPredictionTime()) / cv::getTickFrequency();
+	// perform prediction
+	pointTracker.predict(timeDiff);
+	// set last prediction time
+	// perform update
+	pointTracker.update(observations);
+	// unlock the tracking class
 }
