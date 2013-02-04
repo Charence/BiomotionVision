@@ -47,11 +47,11 @@ int main(int argc, const char** argv) {
 	char* filepath;
 	filepath = "/home/charence/Workspace/biomotion-vision/images/set2/%d/10/frame%04d.jpg";
 	// is it my mac?
-	#ifdef mymac
+	#ifdef MYMAC
 	filepath = "/Users/charence/Workspace/biomotion-vision/images/set2/%d/10/frame%04d.jpg";
 	#endif
 	// is it on doc?
-	#ifdef ondoc
+	#ifdef ONDOC
 	filepath = "/media/Charence500/Data/20121221/10/%d/frame%04d.jpg";
 	#endif
 
