@@ -39,9 +39,11 @@ static cv::Mat processNoise(2, 1, CV_32F);
 static cv::Mat measurement = Mat::zeros(1, 1, CV_32F);
 //ObjectTracker* objectTracker = new ObjectTracker();
 PointTracker pointTracker;
+static int imageNum;
 
 int main(int argc, const char** argv) {
 	int persons = 1;
+	const bool recalibrate = true;
 
 	// setup path to file
 	char* filepath;
@@ -68,14 +70,23 @@ int main(int argc, const char** argv) {
 	bgmodel.set("varThreshold", varThreshold);
 	bgmodel.set("detectShadows", true);
 
+	// setup homography
+	if (recalibrate) {
+	}
+	else {
+	}
+
 	// setup tracker
 	pointTracker.setArguments(3.5, 1.5);
+
+	cout << "ImageNum,RectCentreX,RectCentreY,RectAngle,RectWidth,RectHeight,CircCentreX,CircCentreY,Radius" << endl;
 
 	// process sequence
 	for (int i = start; i <= end; i++) {
 		char filename [128];
 		sprintf(filename, filepath, persons, i);
-		cout << "In: " << filename << endl;
+		//cout << "In: " << filename << endl;
+		imageNum = i;
 		// load image
 		cv::Mat image = cv::imread(filename);
 		if (image.empty()) {
@@ -85,6 +96,8 @@ int main(int argc, const char** argv) {
 		// detect objects
 		learningRate = (i > 200) ? 0.00001 : 0.01;
 		vector<ObjectInfo> detectedObjects = detectObjects(image);
+		// homography
+		//detectedObjects = ho
 		// track objects
 		//objectTracker->update(detectedObjects);
 		trackObjects(detectedObjects);
@@ -164,8 +177,17 @@ static vector<ObjectInfo> detectObjects(cv::Mat image) {
 	
 	// rotated rectangles for contour
 	vector<cv::RotatedRect> minRect(contours.size());
+	vector<cv::RotatedRect> minEllipse(contours.size());
+	vector< vector<cv::Point> > contoursPoly(contours.size());
+	vector<cv::Point2f> centre(contours.size());
+	vector<float> radius(contours.size());
 	for (int i = 0; i < contours.size(); i++) {
 		minRect[i] = cv::minAreaRect(cv::Mat(contours[i]));
+		if (contours[i].size() > 5) {
+			minEllipse[i] = fitEllipse(cv::Mat(contours[i]));
+		}
+		approxPolyDP(cv::Mat(contours[i]), contoursPoly[i], 3, true);
+		minEnclosingCircle((cv::Mat)contoursPoly[i], centre[i], radius[i]);
 	}
 	
 	// draw contours
@@ -181,6 +203,10 @@ static vector<ObjectInfo> detectObjects(cv::Mat image) {
 			//line(imageContours, rectPoints[j], rectPoints[(j+1)%4], colour, 1, 8);
 			line(imageContours, rectPoints[j], rectPoints[(j+1)%4], colour, 1, 8);
 		}
+		// ellipse
+		ellipse(imageContours, minEllipse[i], colour, 2, 8);
+		// circle
+		circle(imageContours, centre[i], (int)radius[i], colour, 2, 8, 0);
 		// image centre
 		cv::Point2f imageCentre(imageContours.size().width/2, imageContours.size().height/2);
 		// line from contour to centre of image
@@ -254,6 +280,10 @@ static vector<ObjectInfo> detectObjects(cv::Mat image) {
 		// save object
 		ObjectInfo object(minRect[i], contours[i]);
 		objects.push_back(object);
+		cout << imageNum;
+		cout << "," << minRect[i].center.x << "," << minRect[i].center.y << "," << minRect[i].angle << "," << minRect[i].size.width << "," << minRect[i].size.height; 
+		cout << "," << centre[i].x << "," << centre[i].y << "," << (int)radius[i];
+		cout << endl;
 	}
 
 	/*cv::imshow("Original", image);
@@ -277,10 +307,11 @@ static void trackObjects(vector<ObjectInfo> detectedObjects) {
 	const vector<cv::Mat > observations;
 	// lock the tracking class as we are updating the Kalman filters
 	// calculate the time since the last prediction
-	const double timeDiff = (static_cast<double>(cv::getTickCount()) - pointTracker.getLastPredictionTime()) / cv::getTickFrequency();
+	const double timeDiff = (static_cast<double>(cv::getTickCount()) - pointTracker.updateLastPredictionTime()) / cv::getTickFrequency();
 	// perform prediction
 	pointTracker.predict(timeDiff);
 	// set last prediction time
+	//setLastPredictionTime(static_cast<double>(cv::getTickCount())); // updateLastPredictionTime gets and sets time
 	// perform update
 	pointTracker.update(observations);
 	// unlock the tracking class
