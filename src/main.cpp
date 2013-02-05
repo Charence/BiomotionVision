@@ -29,6 +29,17 @@ static void trackObjects(vector<ObjectInfo> detectedObjects);
 const int history = 200;
 const int varThreshold = 48;
 cv::RNG rng(12345);
+const bool drawContour = true;
+const bool drawRectangle = false;
+const bool drawEllipse = false;
+const bool drawCircle = true;
+const bool drawLines = false;
+const bool storeContourArea = false;
+const bool storeRectangleCenter = true;
+const bool storeRectangleAngle = false;
+const bool storeRectangleSize = false;
+const bool storeCircleCenter = false;
+const bool storeCircleRadius = true;
 
 // global vars
 static double learningRate = 0.001;
@@ -79,7 +90,8 @@ int main(int argc, const char** argv) {
 	// setup tracker
 	pointTracker.setArguments(3.5, 1.5);
 
-	cout << "ImageNum,RectCentreX,RectCentreY,RectAngle,RectWidth,RectHeight,CircCentreX,CircCentreY,Radius" << endl;
+	//cout << "ImageNum,ContourArea,RectCentreX,RectCentreY,RectAngle,RectWidth,RectHeight,CircCentreX,CircCentreY,Radius" << endl;
+	//cout << "ImageNum,ContourArea,CircCentreX,CircCentreY,Radius" << endl;
 
 	// process sequence
 	for (int i = start; i <= end; i++) {
@@ -94,7 +106,7 @@ int main(int argc, const char** argv) {
 		}
 
 		// detect objects
-		learningRate = (i > 200) ? 0.00001 : 0.01;
+		learningRate = (i > 200) ? 0.00005 : 0.01;
 		vector<ObjectInfo> detectedObjects = detectObjects(image);
 		// homography
 		//detectedObjects = ho
@@ -174,12 +186,13 @@ static vector<ObjectInfo> detectObjects(cv::Mat image) {
 	vector< vector<cv::Point> > contours;
 	vector<cv::Vec4i> hierarchy;
 	cv::findContours(weightedGradient, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, cv::Point(0, 0));
+	//cv::findContours(fgMask, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, cv::Point(0, 0));
 	
 	// rotated rectangles for contour
 	vector<cv::RotatedRect> minRect(contours.size());
 	vector<cv::RotatedRect> minEllipse(contours.size());
 	vector< vector<cv::Point> > contoursPoly(contours.size());
-	vector<cv::Point2f> centre(contours.size());
+	vector<cv::Point2f> center(contours.size());
 	vector<float> radius(contours.size());
 	for (int i = 0; i < contours.size(); i++) {
 		minRect[i] = cv::minAreaRect(cv::Mat(contours[i]));
@@ -187,110 +200,127 @@ static vector<ObjectInfo> detectObjects(cv::Mat image) {
 			minEllipse[i] = fitEllipse(cv::Mat(contours[i]));
 		}
 		approxPolyDP(cv::Mat(contours[i]), contoursPoly[i], 3, true);
-		minEnclosingCircle((cv::Mat)contoursPoly[i], centre[i], radius[i]);
+		minEnclosingCircle((cv::Mat)contoursPoly[i], center[i], radius[i]);
 	}
-	
+
 	// draw contours
 	cv::Mat imageContours = cv::Mat::zeros(imageCanny.size(), CV_8UC3);
 	for (int i = 0; i < contours.size(); i++) {
-		cv::Scalar colour = cv::Scalar(rng.uniform(0, 255), rng.uniform(0, 255), rng.uniform(0, 255));
-		// contour
-		drawContours(imageContours, contours, i, colour, 2, 8, hierarchy, 0, cv::Point());
-		// rotated rectangle
-		cv::Point2f rectPoints[4];
-		minRect[i].points(rectPoints);
-		for (int j = 0; j < 4; j++) {
-			//line(imageContours, rectPoints[j], rectPoints[(j+1)%4], colour, 1, 8);
-			line(imageContours, rectPoints[j], rectPoints[(j+1)%4], colour, 1, 8);
+		if (abs(PI*pow(radius[i],2) - contourArea(contours[i], false))/(PI*pow(radius[i],2)) < 0.55 && radius[i] > 10) { //40) {
+			cv::Scalar colour = cv::Scalar(rng.uniform(0, 255), rng.uniform(0, 255), rng.uniform(0, 255));
+			// contour
+			if (drawContour)
+				drawContours(imageContours, contours, i, colour, 2, 8, hierarchy, 0, cv::Point());
+			// rotated rectangle
+			if (drawRectangle) {
+				cv::Point2f rectPoints[4];
+				minRect[i].points(rectPoints);
+				for (int j = 0; j < 4; j++) {
+					//line(imageContours, rectPoints[j], rectPoints[(j+1)%4], colour, 1, 8);
+				}
+			}
+			// ellipse
+			if (drawEllipse)
+				ellipse(imageContours, minEllipse[i], colour, 2, 8);
+			// circle
+			if (drawCircle)
+				circle(imageContours, center[i], (int)radius[i], colour, 2, 8, 0);
+			// image centre
+			cv::Point2f imageCentre(imageContours.size().width/2, imageContours.size().height/2);
+			// line from contour to centre of image
+			if (drawLines)
+				line(imageContours, minRect[i].center, imageCentre, colour, 1, 8);
+			// find angle of contour
+			double angle;
+			if (minRect[i].center.x <= imageCentre.x && minRect[i].center.y < imageCentre.y) {
+				// top left quad
+				angle = atan((imageCentre.x - minRect[i].center.x)/(imageCentre.y - minRect[i].center.y));
+			}
+			else if (minRect[i].center.x <= imageCentre.x) {
+				// bottom left quad
+				angle = PI - atan((imageCentre.x - minRect[i].center.x)/(minRect[i].center.y - imageCentre.y));
+			}
+			else if (minRect[i].center.x > imageCentre.x && minRect[i].center.y > imageCentre.y) {
+				// bottom right quad
+				angle = PI + atan((minRect[i].center.x - imageCentre.x)/(minRect[i].center.y - imageCentre.y));
+			}
+			else {
+				// top right quad
+				angle = 2*PI - atan((minRect[i].center.x - imageContours.size().width/2)/(imageContours.size().height/2 - minRect[i].center.y));
+			}
+			angle = angle * 180/PI;
+			/*
+			// extract rotated ROI
+			// http://answers.opencv.org/question/497/extract-a-rotatedrect-area/
+			// get angle and size from bounding box
+			angle = minRect[i].angle;
+			cv::Size rectSize = minRect[i].size;
+			// thanks to http://felix.abecassis.me/2011/10/opencv-rotation-deskewing
+			if (angle < -45) {
+				angle += 90;
+				swap(rectSize.width, rectSize.height);
+			}
+			// rotation matrix
+			cv::Mat rotationMatrix = cv::getRotationMatrix2D(minRect[i].center, angle, 1);
+			cv::Mat rotationMatrixInverse = cv::getRotationMatrix2D(minRect[i].center, -angle, 1);
+			// perform affine transformation
+			cv::Mat rotated;
+			cv::warpAffine(image, rotated, rotationMatrix, image.size(), cv::INTER_CUBIC);
+			// crop the image
+			cv::Mat cropped;
+			try {
+				cv::getRectSubPix(rotated, rectSize, minRect[i].center, cropped);
+				cv::imshow("Cropped " +i, cropped);
+			}
+			catch (cv::Exception e) {
+			}
+			*/
+			/*
+			// rotate contour
+			cv::Mat contourMat(3, contours[i].size(), CV_64FC1);
+			double* row0 = contourMat.ptr<double>(0);
+			double* row1 = contourMat.ptr<double>(1);
+			double* row2 = contourMat.ptr<double>(2);
+			for (int j = 0; j < (int) contours[i].size(); j++) {
+				row0[j] = (double) (contours[i])[j].x;
+				row1[j] = (double) (contours[i])[j].y;
+				row2[j] = 1;
+			}
+			cv::Mat uprightContour = rotationMatrix * contourMat;
+			cv::imshow("upright " + i, uprightContour);
+			// find bounding box
+			try {
+				cv::Rect boundRect = cv::boundingRect(uprightContour);
+			}
+			catch (cv::Exception e) {
+			}*/
+			//rectangle(imageContours, boundRect[i].tl(), boundRect[i].br(), colour, 2, 8, 0);
+	
+			// save object
+			ObjectInfo object(minRect[i], contours[i]);
+			objects.push_back(object);
+			cout << imageNum;
+			if (storeContourArea)
+				cout << "," << cv::contourArea(contours[i], false);
+			if (storeRectangleCenter)
+				cout << "," << minRect[i].center.x << "," << minRect[i].center.y;
+			if (storeRectangleAngle)
+				cout << "," << minRect[i].angle;
+			if (storeRectangleSize)
+				cout << "," << minRect[i].size.width << "," << minRect[i].size.height; 
+			if (storeCircleCenter)
+				cout << "," << center[i].x << "," << center[i].y;
+			if (storeCircleRadius)
+				cout << "," << (int)radius[i];
+			cout << endl;
 		}
-		// ellipse
-		ellipse(imageContours, minEllipse[i], colour, 2, 8);
-		// circle
-		circle(imageContours, centre[i], (int)radius[i], colour, 2, 8, 0);
-		// image centre
-		cv::Point2f imageCentre(imageContours.size().width/2, imageContours.size().height/2);
-		// line from contour to centre of image
-		line(imageContours, minRect[i].center, imageCentre, colour, 1, 8);
-		// find angle of contour
-		double angle;
-		if (minRect[i].center.x <= imageCentre.x && minRect[i].center.y < imageCentre.y) {
-			// top left quad
-			angle = atan((imageCentre.x - minRect[i].center.x)/(imageCentre.y - minRect[i].center.y));
-		}
-		else if (minRect[i].center.x <= imageCentre.x) {
-			// bottom left quad
-			angle = PI - atan((imageCentre.x - minRect[i].center.x)/(minRect[i].center.y - imageCentre.y));
-		}
-		else if (minRect[i].center.x > imageCentre.x && minRect[i].center.y > imageCentre.y) {
-			// bottom right quad
-			angle = PI + atan((minRect[i].center.x - imageCentre.x)/(minRect[i].center.y - imageCentre.y));
-		}
-		else {
-			// top right quad
-			angle = 2*PI - atan((minRect[i].center.x - imageContours.size().width/2)/(imageContours.size().height/2 - minRect[i].center.y));
-		}
-		angle = angle * 180/PI;
-		/*
-		// extract rotated ROI
-		// http://answers.opencv.org/question/497/extract-a-rotatedrect-area/
-		// get angle and size from bounding box
-		angle = minRect[i].angle;
-		cv::Size rectSize = minRect[i].size;
-		// thanks to http://felix.abecassis.me/2011/10/opencv-rotation-deskewing
-		if (angle < -45) {
-			angle += 90;
-			swap(rectSize.width, rectSize.height);
-		}
-		// rotation matrix
-		cv::Mat rotationMatrix = cv::getRotationMatrix2D(minRect[i].center, angle, 1);
-		cv::Mat rotationMatrixInverse = cv::getRotationMatrix2D(minRect[i].center, -angle, 1);
-		// perform affine transformation
-		cv::Mat rotated;
-		cv::warpAffine(image, rotated, rotationMatrix, image.size(), cv::INTER_CUBIC);
-		// crop the image
-		cv::Mat cropped;
-		try {
-			cv::getRectSubPix(rotated, rectSize, minRect[i].center, cropped);
-			cv::imshow("Cropped " +i, cropped);
-		}
-		catch (cv::Exception e) {
-		}
-		*/
-		/*
-		// rotate contour
-		cv::Mat contourMat(3, contours[i].size(), CV_64FC1);
-		double* row0 = contourMat.ptr<double>(0);
-		double* row1 = contourMat.ptr<double>(1);
-		double* row2 = contourMat.ptr<double>(2);
-		for (int j = 0; j < (int) contours[i].size(); j++) {
-			row0[j] = (double) (contours[i])[j].x;
-			row1[j] = (double) (contours[i])[j].y;
-			row2[j] = 1;
-		}
-		cv::Mat uprightContour = rotationMatrix * contourMat;
-		cv::imshow("upright " + i, uprightContour);
-		// find bounding box
-		try {
-			cv::Rect boundRect = cv::boundingRect(uprightContour);
-		}
-		catch (cv::Exception e) {
-		}*/
-		//rectangle(imageContours, boundRect[i].tl(), boundRect[i].br(), colour, 2, 8, 0);
-
-		// save object
-		ObjectInfo object(minRect[i], contours[i]);
-		objects.push_back(object);
-		cout << imageNum;
-		cout << "," << minRect[i].center.x << "," << minRect[i].center.y << "," << minRect[i].angle << "," << minRect[i].size.width << "," << minRect[i].size.height; 
-		cout << "," << centre[i].x << "," << centre[i].y << "," << (int)radius[i];
-		cout << endl;
 	}
 
 	/*cv::imshow("Original", image);
 	cv::imshow("Hue", imageHSVSlices[0]);
 	cv::imshow("Saturation", imageHSVSlices[1]);
-	//cv::imshow("Value", imageHSVSlices[2]);
-	cv::imshow("fgMask", fgMask);*/
+	//cv::imshow("Value", imageHSVSlices[2]);*/
+	cv::imshow("fgMask", fgMask);
 	cv::imshow("Foreground", foreground);/*
 	cv::imshow("Canny", imageCanny);
 	cv::imshow("WeightMap", weightMap);
