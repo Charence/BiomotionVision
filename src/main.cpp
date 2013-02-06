@@ -24,13 +24,15 @@ using namespace std;
 // methods
 static vector<ObjectInfo> detectObjects(cv::Mat image);
 static void trackObjects(vector<ObjectInfo> detectedObjects);
+static bool isBody(vector<cv::Point> contour);
+static bool isHead(vector<cv::Point> contour, vector<cv::Point> bodyContour);
 
 // constants
 const int history = 200;
 const int varThreshold = 48;
 cv::RNG rng(12345);
 const bool drawContour = true;
-const bool drawRectangle = false;
+const bool drawRectangle = true;
 const bool drawEllipse = false;
 const bool drawCircle = true;
 const bool drawLines = false;
@@ -189,7 +191,7 @@ static vector<ObjectInfo> detectObjects(cv::Mat image) {
 	//cv::findContours(fgMask, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, cv::Point(0, 0));
 	
 	// rotated rectangles for contour
-	vector<cv::RotatedRect> minRect(contours.size());
+	/*vector<cv::RotatedRect> minRect(contours.size());
 	vector<cv::RotatedRect> minEllipse(contours.size());
 	vector< vector<cv::Point> > contoursPoly(contours.size());
 	vector<cv::Point2f> center(contours.size());
@@ -201,11 +203,83 @@ static vector<ObjectInfo> detectObjects(cv::Mat image) {
 		}
 		approxPolyDP(cv::Mat(contours[i]), contoursPoly[i], 3, true);
 		minEnclosingCircle((cv::Mat)contoursPoly[i], center[i], radius[i]);
-	}
+	}*/
 
+	// bodies and heads
+	// store index of detected body contours and position of head
+	vector<int> bodies;
+	vector<cv::Point2f> headCenter;
+	vector<float> headRadius;
+
+	// draw contours
+	// detect bodies
+	for (int i = 0; i < contours.size(); i++) {
+		if (isBody(contours[i])) {
+			// predict head position
+			cout << "body";
+			// detect head
+			for (int j = 0; j < contours.size(); j++) {
+				if (i != j && isHead(contours[j], contours[i])) {
+					cout << "head";
+				}
+			}
+		}
+	}
+	cout << endl;
+
+	/*cv::imshow("Original", image);
+	cv::imshow("Hue", imageHSVSlices[0]);
+	cv::imshow("Saturation", imageHSVSlices[1]);
+	//cv::imshow("Value", imageHSVSlices[2]);*/
+	cv::imshow("fgMask", fgMask);
+	cv::imshow("Foreground", foreground);/*
+	cv::imshow("Canny", imageCanny);
+	cv::imshow("WeightMap", weightMap);
+	cv::imshow("Gradient Image", imageGradient);
+	cv::imshow("Weighted-Gradient Image", weightedGradient);*/
+	//cv::imshow("Contours", imageContours);
+	cvWaitKey(5);
+	
+	return objects;
+}
+
+static bool isBody(vector<cv::Point> contour) {
+	// get radius
+	vector<cv::Point> contourPoly;
+	cv::Point2f center;
+	float radius;
+	approxPolyDP(cv::Mat(contour), contourPoly, 3, true);
+	minEnclosingCircle((cv::Mat)contourPoly, center, radius);
+	// min radius based on prior knowledge
+	return 40 < radius;
+}
+
+static bool isHead(vector<cv::Point> contour, vector<cv::Point> bodyContour) {
+	cv::RotatedRect minRect;
+	minRect = cv::minAreaRect(cv::Mat(contour));
+	// is it within body contour?
+	if (cv::pointPolygonTest(bodyContour, minRect.center, true)) {
+		vector<cv::Point> contourPoly;
+		cv::Point2f center;
+		float radius;
+		approxPolyDP(cv::Mat(contour), contourPoly, 3, true);
+		minEnclosingCircle((cv::Mat)contourPoly, center, radius);
+		// compare contour area with circle area
+		if (abs(PI*pow(radius,2) - cv::contourArea(contour, false))/(PI*pow(radius,2)) < 0.55 && radius > 10) {
+			// compare contour area with rectangle area
+			return true;
+		}
+	}
+	return false;
+}
+
+/*
+void drawContours() {
 	// draw contours
 	cv::Mat imageContours = cv::Mat::zeros(imageCanny.size(), CV_8UC3);
 	for (int i = 0; i < contours.size(); i++) {
+		//if (abs(PI*pow(radius[i],2) - contourArea(contours[i], false))/(PI*pow(radius[i],2)) < 0.55 && radius[i] > 10) { //40) {
+		//if (abs(PI*pow(radius[i],2) - minRect[i].size.height*minRect[i].size.width)/(PI*pow(radius[i],2)) < 0.4 && radius[i] > 10) { //40) {
 		if (abs(PI*pow(radius[i],2) - contourArea(contours[i], false))/(PI*pow(radius[i],2)) < 0.55 && radius[i] > 10) { //40) {
 			cv::Scalar colour = cv::Scalar(rng.uniform(0, 255), rng.uniform(0, 255), rng.uniform(0, 255));
 			// contour
@@ -216,7 +290,7 @@ static vector<ObjectInfo> detectObjects(cv::Mat image) {
 				cv::Point2f rectPoints[4];
 				minRect[i].points(rectPoints);
 				for (int j = 0; j < 4; j++) {
-					//line(imageContours, rectPoints[j], rectPoints[(j+1)%4], colour, 1, 8);
+					line(imageContours, rectPoints[j], rectPoints[(j+1)%4], colour, 1, 8);
 				}
 			}
 			// ellipse
@@ -248,7 +322,7 @@ static vector<ObjectInfo> detectObjects(cv::Mat image) {
 				// top right quad
 				angle = 2*PI - atan((minRect[i].center.x - imageContours.size().width/2)/(imageContours.size().height/2 - minRect[i].center.y));
 			}
-			angle = angle * 180/PI;
+			angle = angle * 180/PI;*/
 			/*
 			// extract rotated ROI
 			// http://answers.opencv.org/question/497/extract-a-rotatedrect-area/
@@ -295,7 +369,7 @@ static vector<ObjectInfo> detectObjects(cv::Mat image) {
 			catch (cv::Exception e) {
 			}*/
 			//rectangle(imageContours, boundRect[i].tl(), boundRect[i].br(), colour, 2, 8, 0);
-	
+			/*
 			// save object
 			ObjectInfo object(minRect[i], contours[i]);
 			objects.push_back(object);
@@ -315,22 +389,7 @@ static vector<ObjectInfo> detectObjects(cv::Mat image) {
 			cout << endl;
 		}
 	}
-
-	/*cv::imshow("Original", image);
-	cv::imshow("Hue", imageHSVSlices[0]);
-	cv::imshow("Saturation", imageHSVSlices[1]);
-	//cv::imshow("Value", imageHSVSlices[2]);*/
-	cv::imshow("fgMask", fgMask);
-	cv::imshow("Foreground", foreground);/*
-	cv::imshow("Canny", imageCanny);
-	cv::imshow("WeightMap", weightMap);
-	cv::imshow("Gradient Image", imageGradient);
-	cv::imshow("Weighted-Gradient Image", weightedGradient);*/
-	cv::imshow("Contours", imageContours);
-	cvWaitKey(5);
-	
-	return objects;
-}
+}*/
 
 static void trackObjects(vector<ObjectInfo> detectedObjects) {
 	// convert format of detected objects
