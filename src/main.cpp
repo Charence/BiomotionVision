@@ -24,6 +24,8 @@ using namespace std;
 // methods
 static vector<ObjectInfo> detectObjects(cv::Mat image);
 static void trackObjects(vector<ObjectInfo> detectedObjects);
+static double euclideanDistance(cv::Point p, cv::Point q);
+static float getContourRadius(vector<cv::Point> contour);
 static bool isBody(vector<cv::Point> contour);
 static bool isHead(vector<cv::Point> contour, vector<cv::Point> bodyContour);
 
@@ -57,6 +59,10 @@ static int imageNum;
 int main(int argc, const char** argv) {
 	int persons = 1;
 	const bool recalibrate = true;
+
+	// read args
+	if (argc > 1)
+		persons = atoi(argv[1]);
 
 	// setup path to file
 	char* filepath;
@@ -215,17 +221,76 @@ static vector<ObjectInfo> detectObjects(cv::Mat image) {
 	// detect bodies
 	for (int i = 0; i < contours.size(); i++) {
 		if (isBody(contours[i])) {
+			// store body index
+			bodies.push_back(i);
 			// predict head position
-			cout << "body";
+			cv::Point2f defaultHeadCenter;
+			// body bounding box
+			cv::RotatedRect minBodyRect;
+			minBodyRect = cv::minAreaRect(cv::Mat(contours[i]));
+			// body bounding circle radius
+			float headOffset = getContourRadius(contours[i])*0.8;
+			// image centre
+			cv::Point2f imageCentre(image.size().width/2, image.size().height/2);
+			// find gradient
+			float m = (minBodyRect.center.y - imageCentre.y)/(minBodyRect.center.x - imageCentre.x);
+			// find angle
+			double angle;
+			if (minBodyRect.center.x <= imageCentre.x && minBodyRect.center.y < imageCentre.y) {
+				// top left quad
+				angle = atan((imageCentre.x - minBodyRect.center.x)/(imageCentre.y - minBodyRect.center.y));
+			}
+			else if (minBodyRect.center.x <= imageCentre.x) {
+				// bottom left quad
+				angle = PI - atan((imageCentre.x - minBodyRect.center.x)/(minBodyRect.center.y - imageCentre.y));
+			}
+			else if (minBodyRect.center.x > imageCentre.x && minBodyRect.center.y > imageCentre.y) {
+				// bottom right quad
+				angle = PI + atan((minBodyRect.center.x - imageCentre.x)/(minBodyRect.center.y - imageCentre.y));
+			}
+			else {
+				// top right quad
+				angle = 2*PI - atan((minBodyRect.center.x - imageCentre.x)/(imageCentre.y - minBodyRect.center.y));
+			}
+			defaultHeadCenter = cv::Point2f(minBodyRect.center.x - headOffset * sin(angle), minBodyRect.center.y - headOffset * cos(angle));
+			//angle = angle * 180/PI;
+			headCenter.push_back(defaultHeadCenter);
+			headRadius.push_back(0); // default head size
 			// detect head
 			for (int j = 0; j < contours.size(); j++) {
 				if (i != j && isHead(contours[j], contours[i])) {
-					cout << "head";
+					vector<cv::Point> contourPoly;
+					cv::Point2f center;
+					float radius;
+					approxPolyDP(cv::Mat(contours[j]), contourPoly, 3, true);
+					minEnclosingCircle((cv::Mat)contourPoly, center, radius);
+					float distanceOld = euclideanDistance(headCenter[headCenter.size() - 1], defaultHeadCenter);
+					float distanceNew = euclideanDistance(center, defaultHeadCenter);
+					if (headRadius[headRadius.size() - 1] == 0 || (distanceOld > 0 && distanceNew < distanceOld)) {
+						// store first detected head or store if it is a better detection
+						headCenter[headCenter.size() - 1] = center;
+						headRadius[headRadius.size() - 1] = radius;
+					}
 				}
+			}
+			if (headRadius[headRadius.size() - 1] == 0) {
+				headRadius[headRadius.size() - 1] = 10;
 			}
 		}
 	}
-	cout << endl;
+
+	// draw bodies and heads
+	cv::Mat bodiesHeads = cv::Mat::zeros(image.size(), CV_8UC3);
+	for (int i = 0; i < bodies.size(); i++) {
+		// draw body
+		cv::Scalar colour = cv::Scalar(rng.uniform(0, 255), rng.uniform(0, 255), rng.uniform(0, 255));
+		drawContours(foreground, contours, bodies[i], colour, 2, 8, hierarchy, 0, cv::Point());
+		circle(foreground, headCenter[i], (int)headRadius[i], colour, 2, 8, 0);
+		// output
+		cout << imageNum;
+		cout << "," << headCenter[i].x << "," << headCenter[i].y << "," << headRadius[i];
+		cout << endl;
+	}
 
 	/*cv::imshow("Original", image);
 	cv::imshow("Hue", imageHSVSlices[0]);
@@ -238,34 +303,44 @@ static vector<ObjectInfo> detectObjects(cv::Mat image) {
 	cv::imshow("Gradient Image", imageGradient);
 	cv::imshow("Weighted-Gradient Image", weightedGradient);*/
 	//cv::imshow("Contours", imageContours);
+	//cv::imshow("Body & Head", bodiesHeads);
 	cvWaitKey(5);
 	
 	return objects;
 }
 
-static bool isBody(vector<cv::Point> contour) {
+static double euclideanDistance(cv::Point p, cv::Point q) {
+	cv::Point diff = p - q;
+	return cv::sqrt(diff.x*diff.x + diff.y*diff.y);
+}
+
+static float getContourRadius(vector<cv::Point> contour) {
 	// get radius
 	vector<cv::Point> contourPoly;
 	cv::Point2f center;
 	float radius;
 	approxPolyDP(cv::Mat(contour), contourPoly, 3, true);
 	minEnclosingCircle((cv::Mat)contourPoly, center, radius);
+	return radius;
+}
+
+static bool isBody(vector<cv::Point> contour) {
 	// min radius based on prior knowledge
-	return 40 < radius;
+	return 40 < getContourRadius(contour);
 }
 
 static bool isHead(vector<cv::Point> contour, vector<cv::Point> bodyContour) {
 	cv::RotatedRect minRect;
 	minRect = cv::minAreaRect(cv::Mat(contour));
 	// is it within body contour?
-	if (cv::pointPolygonTest(bodyContour, minRect.center, true)) {
+	if (cv::pointPolygonTest(bodyContour, minRect.center, true) > 0) {
 		vector<cv::Point> contourPoly;
 		cv::Point2f center;
 		float radius;
 		approxPolyDP(cv::Mat(contour), contourPoly, 3, true);
 		minEnclosingCircle((cv::Mat)contourPoly, center, radius);
 		// compare contour area with circle area
-		if (abs(PI*pow(radius,2) - cv::contourArea(contour, false))/(PI*pow(radius,2)) < 0.55 && radius > 10) {
+		if (abs(PI*pow(radius,2) - cv::contourArea(contour, false))/(PI*pow(radius,2)) < 0.55 && radius > 8 && radius < 40) {
 			// compare contour area with rectangle area
 			return true;
 		}
