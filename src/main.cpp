@@ -229,7 +229,7 @@ static vector<ObjectInfo> detectObjects(cv::Mat image) {
 			cv::RotatedRect minBodyRect;
 			minBodyRect = cv::minAreaRect(cv::Mat(contours[i]));
 			// body bounding circle radius
-			float headOffset = getContourRadius(contours[i])*0.8;
+			float headOffset = getContourRadius(contours[i])*0.7;
 			// image centre
 			cv::Point2f imageCentre(image.size().width/2, image.size().height/2);
 			// find gradient
@@ -340,9 +340,13 @@ static bool isHead(vector<cv::Point> contour, vector<cv::Point> bodyContour) {
 		approxPolyDP(cv::Mat(contour), contourPoly, 3, true);
 		minEnclosingCircle((cv::Mat)contourPoly, center, radius);
 		// compare contour area with circle area
-		if (abs(PI*pow(radius,2) - cv::contourArea(contour, false))/(PI*pow(radius,2)) < 0.55 && radius > 8 && radius < 40) {
+		if (abs(PI*pow(radius,2) - cv::contourArea(contour, false))/(PI*pow(radius,2)) < 0.55 && radius > 8 && radius < 20) {
 			// compare contour area with rectangle area
-			return true;
+			//cout << "==== " << abs(PI*pow(radius,2) - minRect.size.height*minRect.size.width)/(PI*pow(radius,2)) << endl;
+			if (abs(PI*pow(radius,2) - minRect.size.height*minRect.size.width)/(PI*pow(radius,2)) < 0.3) {
+			//if (abs(minRect.size.height*minRect.size.width - cv::contourArea(contour, false))/(minRect.size.height*minRect.size.width) < 0.4) {
+				return true;
+			}
 		}
 	}
 	return false;

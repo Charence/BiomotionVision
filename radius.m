@@ -6,17 +6,38 @@ data = load('p1h.csv');
 frames = [];
 tempdata = [];
 
+prevX = -1;
+prevY = -1;
+
 for i = 680:2485
     states = data(find(data(:,1) == i),:); % find all states for frame
     if length(states) > 0 % TODO iterate over all detections (do one for now)
         frames = [frames i];
         %tempdata = [tempdata; states(find(states(:,4) == max(states(:,4))),:)]; % save
         maxstates = states(find(states(:,4) == max(states(:,4))),:); % find largest states
+        % 
+        if prevX == -1
+            prevX = states(1, 2);
+            prevY = states(1, 3);
+        end
+        % find closest state
+        minDistance = Inf;
+        for j = 1:size(states, 1)
+            stateDistance = sqrt((states(j, 2) - prevX)^2 + (states(j, 3) - prevY)^2);
+            if stateDistance < minDistance
+                maxstates = states(j, :);
+                minDistance = stateDistance;
+            end
+        end
+        % select 1 state only
         if length(maxstates) > 1
             tempdata = [tempdata; maxstates(1,:)];
         else
             tempdata = [tempdata; maxstates];
         end
+        % store previous position
+        prevX = tempdata(size(tempdata, 1), 1);
+        prevY = tempdata(size(tempdata, 1), 2);
     end
 end
 
