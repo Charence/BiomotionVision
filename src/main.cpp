@@ -103,16 +103,17 @@ int main(int argc, const char** argv) {
 
 	// process sequence
 	for (int i = start; i <= end; i++) {
+		if (i > 200)
+			i = 1050;
 		char filename [128];
 		sprintf(filename, filepath, persons, i);
-		//cout << "In: " << filename << endl;
+		cout << "In: " << filename << endl;
 		imageNum = i;
 		// load image
 		cv::Mat image = cv::imread(filename);
 		if (image.empty()) {
 			throw runtime_error("Could not load image");
 		}
-
 		// detect objects
 		learningRate = (i > 200) ? 0.00005 : 0.01;
 		vector<ObjectInfo> detectedObjects = detectObjects(image);
@@ -218,8 +219,12 @@ static vector<ObjectInfo> detectObjects(cv::Mat image) {
 	vector<float> headRadius;
 
 	// draw contours
+	cv::Mat imageContours = cv::Mat::zeros(imageCanny.size(), CV_8UC3);
 	// detect bodies
 	for (int i = 0; i < contours.size(); i++) {
+		cv::Scalar colourRed = cv::Scalar(255, 0, 0);
+		if (drawContour)
+			drawContours(imageContours, contours, i, colourRed, 2, 8, hierarchy, 0, cv::Point());
 		if (isBody(contours[i])) {
 			// store body index
 			bodies.push_back(i);
@@ -302,7 +307,7 @@ static vector<ObjectInfo> detectObjects(cv::Mat image) {
 	cv::imshow("WeightMap", weightMap);
 	cv::imshow("Gradient Image", imageGradient);
 	cv::imshow("Weighted-Gradient Image", weightedGradient);*/
-	//cv::imshow("Contours", imageContours);
+	cv::imshow("Contours", imageContours);
 	//cv::imshow("Body & Head", bodiesHeads);
 	cvWaitKey(5);
 	

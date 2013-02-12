@@ -1,7 +1,10 @@
 clear;
 close all;
 
-data = load('p1h.csv');
+data = load('p2h.csv');
+
+range = 680:2485;
+%range = 680:3485;
 
 frames = [];
 tempdata = [];
@@ -9,7 +12,7 @@ tempdata = [];
 prevX = -1;
 prevY = -1;
 
-for i = 680:2485
+for i = range
     states = data(find(data(:,1) == i),:); % find all states for frame
     if length(states) > 0 % TODO iterate over all detections (do one for now)
         frames = [frames i];
@@ -43,6 +46,9 @@ end
 
 data = tempdata;
 
+data(:,2) = medfilt1(data(:,2), 10);
+data(:,3) = medfilt1(data(:,3), 10);
+
 % State = (x y xdot ydot radius). We only observe (x y radius).
 
 % This code was used to generate Figure 15.9 of "Artificial Intelligence: a Modern Approach",
@@ -56,8 +62,8 @@ os = 3; % observation size
 deltaT = 0.01;
 F = [1 0 deltaT 0 0; 0 1 0 deltaT 0; 0 0 1 0 0; 0 0 0 1 0; 0 0 0 0 1]; 
 H = [1 0 0 0 0; 0 1 0 0 0; 0 0 0 0 1];
-Q = 0.1*eye(ss);
-R = 1*eye(os);
+Q = 1*eye(ss);
+R = 0.5*eye(os);
 index = 1; % start
 initx = [data(index,2) data(index,3) 0 0 data(index, 4)]'; % initial state
 initV = 10*eye(ss);
@@ -77,8 +83,8 @@ clf
 %subplot(2,1,1)
 hold on
 % plot(x(1,:), x(2,:), 'ks-');
-plot(y(1,:), y(2,:), 'g*');
-plot(xfilt(1,:), xfilt(2,:), 'rx:');
+plot(y(1,:), y(2,:), 'g*-.');
+%plot(xfilt(1,:), xfilt(2,:), 'rx:');
 hold off
 legend( 'observed', 'filtered', 3)
 xlabel('x')
@@ -91,16 +97,9 @@ set(gcf,'PaperPosition',[0 0 3 3])
 %print(gcf,'-djpeg','-r100', '/home/eecs/murphyk/public_html/Bayes/Figures/aima_filtered.jpg');
 
 result = figure;
-% for i=680:2485
-%     index=(data(:,1)==i);
-%     newdata=data(index,:);
-%     if length(newdata)>0
-%         maxradius(i+1)=max(newdata(:,5));
-%     end
-% end
 imagenum = 0;
 for i=frames; %680:2485
-    image = imread(sprintf('/media/Charence500/Data/20121221/10/1/frame%04d.jpg',i));
+    image = imread(sprintf('/media/Charence500/Data/20121221/10/2/frame%04d.jpg',i));
     imshow(image)
     %states = xfilt(find(xfilt(:,1) == i),:); % find all states for xfilt
     %if length(states) > 0 % TODO iterate over all detections (do one for now)
