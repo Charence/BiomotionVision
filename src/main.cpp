@@ -17,6 +17,7 @@
 #include "filepath.h"
 
 #define PI 3.14159265
+#define BODYSIZE 40
 
 using namespace cv;
 using namespace std;
@@ -225,6 +226,24 @@ static vector<ObjectInfo> detectObjects(cv::Mat image) {
 		cv::Scalar colourRed = cv::Scalar(0, 0, 255);
 		if (drawContour)
 			drawContours(imageContours, contours, i, colourRed, 2, 8, hierarchy, 0, cv::Point());
+		// if contour is too big
+		if (getContourRadius(contours[i]) > BODYSIZE*2) {
+			// process contour by eroding it
+			cv::Mat largeContour = cv::Mat::zeros(imageCanny.size(), CV_8UC3);
+			drawContours(largeContour, contours, i, colourRed, CV_FILLED, 8, hierarchy, 0, cv::Point());
+			// erode until large contour becomes 2+
+			vector< vector<cv::Point> > largeContours;
+			vector<cv::Vec4i> largeHierarchy;
+			do {
+				cv::erode(largeContour, largeContour, element);
+				cv::Canny(largeContour, largeContour, lowThreshold, lowThreshold*ratio, kernelSize);
+				cv::findContours(largeContour, largeContours, largeHierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, cv::Point(0, 0));
+			} while (largeContours.size() > 1); // TODO potential infinite bug here
+			for (int j = 0; j < largeContours.size(); j++) {
+				contours.push_back(largeContours[j]);
+			}
+		}
+		// TODO get rid of sub contours
 		if (isBody(contours[i])) {
 			// store body index
 			bodies.push_back(i);
@@ -377,7 +396,7 @@ static float getContourRadius(vector<cv::Point> contour) {
 static bool isBody(vector<cv::Point> contour) {
 	// min radius based on prior knowledge
 	float radius = getContourRadius(contour);
-	return 40 < radius && radius < 80;
+	return BODYSIZE < radius && radius < BODYSIZE*2;
 }
 
 static bool isHead(vector<cv::Point> contour, vector<cv::Point> bodyContour) {

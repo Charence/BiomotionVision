@@ -1,10 +1,10 @@
 clear;
 close all;
 
-data = load('p2h.csv');
+data = load('p2h_d.csv');
 
 range = 680:2485;
-%range = 680:3485;
+range = 680:3485;
 
 frames = [];
 tempdata = [];
