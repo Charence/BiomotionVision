@@ -1,10 +1,11 @@
 clear;
 close all;
 
-data = load('p2h_d.csv');
+data = load('p3h_e.csv');
 
 range = 680:2485;
 range = 680:3485;
+range = 680:4000;
 
 frames = [];
 tempdata = [];
@@ -99,7 +100,8 @@ set(gcf,'PaperPosition',[0 0 3 3])
 result = figure;
 imagenum = 0;
 for i=frames; %680:2485
-    image = imread(sprintf('/media/Charence500/Data/20121221/10/2/frame%04d.jpg',i));
+    %image = imread(sprintf('/media/Charence500/Data/20121221/10/2/frame%04d.jpg',i));
+    image = imread(sprintf('/home/charence/Workspace/biomotion-vision/images/set2/3/10/frame%04d.jpg',i));
     imshow(image)
     %states = xfilt(find(xfilt(:,1) == i),:); % find all states for xfilt
     %if length(states) > 0 % TODO iterate over all detections (do one for now)
@@ -109,7 +111,8 @@ for i=frames; %680:2485
     plot(y(1,i-679), y(2,i-679), 'bo','linewidth',18);
     plot(xfilt(1,i-679), xfilt(2,i-679), 'rx','linewidth',18);
     % save result figure
-    print(result, ['/media/Charence500/Data/temp/frame' int2str(imagenum)], '-dpng');
+    %print(result, ['/media/Charence500/Data/temp/frame' int2str(imagenum)], '-dpng');
+    print(result, ['/home/charence/Workspace/biomotion-vision/images/set2/3/10/temp/frame' int2str(imagenum)], '-dpng');
     pause(0.001)
     clf
     imagenum = imagenum + 1;
