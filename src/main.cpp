@@ -358,6 +358,7 @@ static vector<ObjectInfo> detectObjects(cv::Mat image) {
 		// output
 		cout << imageNum;
 		cout << "," << headCenter[i].x << "," << headCenter[i].y << "," << headRadius[i];
+		// TODO output contour area
 		cout << endl;
 	}
 
