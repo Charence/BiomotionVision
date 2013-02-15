@@ -192,32 +192,71 @@ static vector<ObjectInfo> detectObjects(cv::Mat image) {
 	cv::Mat colourWeightMap;
 	weightedGradient = imageGradient.mul(weightMap);
 
-	// contours
-	vector< vector<cv::Point> > contours;
-	vector<cv::Vec4i> hierarchy;
-	cv::findContours(weightedGradient, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, cv::Point(0, 0));
-	//cv::findContours(fgMask, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, cv::Point(0, 0));
-	
-	// rotated rectangles for contour
-	/*vector<cv::RotatedRect> minRect(contours.size());
-	vector<cv::RotatedRect> minEllipse(contours.size());
-	vector< vector<cv::Point> > contoursPoly(contours.size());
-	vector<cv::Point2f> center(contours.size());
-	vector<float> radius(contours.size());
-	for (int i = 0; i < contours.size(); i++) {
-		minRect[i] = cv::minAreaRect(cv::Mat(contours[i]));
-		if (contours[i].size() > 5) {
-			minEllipse[i] = fitEllipse(cv::Mat(contours[i]));
-		}
-		approxPolyDP(cv::Mat(contours[i]), contoursPoly[i], 3, true);
-		minEnclosingCircle((cv::Mat)contoursPoly[i], center[i], radius[i]);
-	}*/
+	// object (body) contours
+	vector< vector<cv::Point> > objectContours;
+	vector<cv::Vec4i> objectHierarchy;
+	cv::findContours(fgMask, objectContours, objectHierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, cv::Point(0, 0));
 
 	// bodies and heads
 	// store index of detected body contours and position of head
 	vector<int> bodies;
 	vector<cv::Point2f> headCenter;
 	vector<float> headRadius;
+
+	// detect bodies
+	for (int i = 0; i < objectContours.size(); i++) {
+		// if contour is too big
+		if (getContourRadius(objectContours[i]) > BODYSIZE*2) {
+			// TODO cut down to size
+		}
+		if (isBody(objectContours[i])) {
+			// predict head position
+			cv::Point2f defaultHeadCenter;
+			// body bounding box
+			cv::RotatedRect minBodyRect;
+			minBodyRect = cv::minAreaRect(cv::Mat(objectContours[i]));
+			// body bounding circle radius
+			float headOffset = getContourRadius(objectContours[i]); //*0.7;
+			// image centre
+			cv::Point2f imageCentre(image.size().width/2, image.size().height/2);
+			// find gradient
+			float m = (minBodyRect.center.y - imageCentre.y)/(minBodyRect.center.x - imageCentre.x);
+			// find angle
+			double angle;
+			if (minBodyRect.center.x <= imageCentre.x && minBodyRect.center.y < imageCentre.y) {
+				// top left quad
+				angle = atan((imageCentre.x - minBodyRect.center.x)/(imageCentre.y - minBodyRect.center.y));
+			}
+			else if (minBodyRect.center.x <= imageCentre.x) {
+				// bottom left quad
+				angle = PI - atan((imageCentre.x - minBodyRect.center.x)/(minBodyRect.center.y - imageCentre.y));
+			}
+			else if (minBodyRect.center.x > imageCentre.x && minBodyRect.center.y > imageCentre.y) {
+				// bottom right quad
+				angle = PI + atan((minBodyRect.center.x - imageCentre.x)/(minBodyRect.center.y - imageCentre.y));
+			}
+			else {
+				// top right quad
+				angle = 2*PI - atan((minBodyRect.center.x - imageCentre.x)/(imageCentre.y - minBodyRect.center.y));
+			}
+			do {
+				headOffset *= 0.7;
+				defaultHeadCenter = cv::Point2f(minBodyRect.center.x - headOffset * sin(angle), minBodyRect.center.y - headOffset * cos(angle));
+			} while (cv::pointPolygonTest(objectContours[i], defaultHeadCenter, true) <= 0 && headOffset >= 1);
+			// store body and head if body big enough for head
+			if (headOffset >= 1) {
+				bodies.push_back(i);
+			}
+		}
+	}
+
+	// detailed contours
+	vector< vector<cv::Point> > contours;
+	vector<cv::Vec4i> hierarchy;
+	cv::findContours(weightedGradient, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, cv::Point(0, 0));
+	
+	// TODO fgmask -> bodies
+	// TODO seg_fg -> heads
 
 	// draw contours
 	cv::Mat imageContours = cv::Mat::zeros(imageCanny.size(), CV_8UC3);
@@ -228,6 +267,7 @@ static vector<ObjectInfo> detectObjects(cv::Mat image) {
 			drawContours(imageContours, contours, i, colourRed, 2, 8, hierarchy, 0, cv::Point());
 		// if contour is too big
 		if (getContourRadius(contours[i]) > BODYSIZE*2) {
+			// TODO consider just slicing it
 			// process contour by eroding it
 			cv::Mat largeContour = cv::Mat::zeros(imageCanny.size(), CV_8UC3);
 			drawContours(largeContour, contours, i, colourRed, CV_FILLED, 8, hierarchy, 0, cv::Point());
