@@ -45,6 +45,8 @@ const bool storeRectangleAngle = false;
 const bool storeRectangleSize = false;
 const bool storeCircleCenter = false;
 const bool storeCircleRadius = true;
+const cv::Scalar colourRed = cv::Scalar(0, 0, 255);
+const cv::Scalar colourWhite = cv::Scalar(255, 255, 255);
 
 // global vars
 static double learningRate = 0.001;
@@ -245,7 +247,58 @@ static vector<ObjectInfo> detectObjects(cv::Mat image) {
 			} while (cv::pointPolygonTest(objectContours[i], defaultHeadCenter, true) <= 0 && headOffset >= 1);
 			// store body and head if body big enough for head
 			if (headOffset >= 1) {
+				// store body
 				bodies.push_back(i);
+				//angle = angle * 180/PI;
+				headCenter.push_back(defaultHeadCenter);
+				headRadius.push_back(0); // default head size
+				// get detailed contours of body
+				cv::Mat bodyMask = cv::Mat::zeros(image.size(), CV_8UC3);
+				drawContours(bodyMask, objectContours, i, colourWhite, CV_FILLED, 8, objectHierarchy, 0, cv::Point());
+				cv::Mat body;
+				image.copyTo(body, bodyMask);
+				cv::imshow("B", body);
+				// detect head
+				/*for (int j = 0; j < contours.size(); j++) {
+					if (i != j) {
+						// process contour by eroding it
+						cv::Mat aContour = cv::Mat::zeros(imageCanny.size(), CV_8UC3);
+						drawContours(aContour, contours, j, colourRed, CV_FILLED, 8, hierarchy, 0, cv::Point());
+						cv::erode(aContour, aContour, element);
+						//cv::erode(aContour, aContour, element);
+						//cv::dilate(aContour, aContour, element);
+						cv::Canny(aContour, aContour, lowThreshold, lowThreshold*ratio, kernelSize);
+						vector< vector<cv::Point> > subContours;
+						vector<cv::Vec4i> subHierarchy;
+						cv::findContours(aContour, subContours, subHierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, cv::Point(0, 0));
+						//
+						for (int k = 0; k < subContours.size(); k++) {
+							//cv::drawContours(imageContours, subContours, k, cv::Scalar(0, 255, 0), 2, 8, hierarchy, 0, cv::Point());
+							if (isHead(subContours[k], contours[i])) {
+								vector<cv::Point> contourPoly;
+								cv::Point2f center;
+								float radius;
+								if (subContours.size() > 1) {
+									approxPolyDP(cv::Mat(subContours[k]), contourPoly, 3, true);
+								}
+								else {
+									approxPolyDP(cv::Mat(contours[j]), contourPoly, 3, true);
+								}
+								minEnclosingCircle((cv::Mat)contourPoly, center, radius);
+								float distanceOld = euclideanDistance(headCenter[headCenter.size() - 1], defaultHeadCenter);
+								float distanceNew = euclideanDistance(center, defaultHeadCenter);
+								if (headRadius[headRadius.size() - 1] == 0 || (distanceOld > 0 && distanceNew < distanceOld)) {
+									// store first detected head or store if it is a better detection
+									headCenter[headCenter.size() - 1] = center;
+									headRadius[headRadius.size() - 1] = radius;
+								}
+							}
+						}
+					}
+				}*/
+				if (headRadius[headRadius.size() - 1] == 0) {
+					headRadius[headRadius.size() - 1] = 10;
+				}
 			}
 		}
 	}
@@ -258,6 +311,7 @@ static vector<ObjectInfo> detectObjects(cv::Mat image) {
 	// TODO fgmask -> bodies
 	// TODO seg_fg -> heads
 
+	/*
 	// draw contours
 	cv::Mat imageContours = cv::Mat::zeros(imageCanny.size(), CV_8UC3);
 	// detect bodies
@@ -366,20 +420,6 @@ static vector<ObjectInfo> detectObjects(cv::Mat image) {
 							}
 						}
 					}
-					/*if (i != j && isHead(contours[j], contours[i])) {
-						vector<cv::Point> contourPoly;
-						cv::Point2f center;
-						float radius;
-						approxPolyDP(cv::Mat(contours[j]), contourPoly, 3, true);
-						minEnclosingCircle((cv::Mat)contourPoly, center, radius);
-						float distanceOld = euclideanDistance(headCenter[headCenter.size() - 1], defaultHeadCenter);
-						float distanceNew = euclideanDistance(center, defaultHeadCenter);
-						if (headRadius[headRadius.size() - 1] == 0 || (distanceOld > 0 && distanceNew < distanceOld)) {
-							// store first detected head or store if it is a better detection
-							headCenter[headCenter.size() - 1] = center;
-							headRadius[headRadius.size() - 1] = radius;
-						}
-					}*/
 				}
 				if (headRadius[headRadius.size() - 1] == 0) {
 					headRadius[headRadius.size() - 1] = 10;
@@ -401,6 +441,7 @@ static vector<ObjectInfo> detectObjects(cv::Mat image) {
 		// TODO output contour area
 		cout << endl;
 	}
+	*/
 
 	//cv::imshow("Original", image);
 	//cv::imshow("Hue", imageHSVSlices[0]);
@@ -412,7 +453,7 @@ static vector<ObjectInfo> detectObjects(cv::Mat image) {
 	//cv::imshow("WeightMap", weightMap);
 	//cv::imshow("Gradient Image", imageGradient);
 	cv::imshow("Weighted-Gradient Image", weightedGradient);
-	cv::imshow("Contours", imageContours);
+	//cv::imshow("Contours", imageContours);
 	//cv::imshow("Body & Head", bodiesHeads);
 	cvWaitKey(5);
 	
