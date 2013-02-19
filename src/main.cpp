@@ -500,10 +500,13 @@ static vector<ObjectInfo> detectObjects(cv::Mat image) {
 		cv::Scalar colour = cv::Scalar(rng.uniform(0, 255), rng.uniform(0, 255), rng.uniform(0, 255));
 		drawContours(foreground, objectContours, bodies[i], colour, 2, 8, objectHierarchy, 0, cv::Point());
 		circle(foreground, headCenter[i], (int)headRadius[i], colour, 2, 8, 0);
+		// body bounding box
+		cv::RotatedRect bodyRect;
+		bodyRect = cv::minAreaRect(cv::Mat(objectContours[bodies[i]]));
 		// output
 		cout << imageNum;
-		cout << "," << headCenter[i].x << "," << headCenter[i].y << "," << headRadius[i];
-		// TODO output contour area
+		cout << "," << headCenter[i].x << "," << headCenter[i].y << "," << headRadius[i]; // head info
+		cout << "," << bodyRect.center.x << "," << bodyRect.center.y;
 		cout << "," << cv::contourArea(objectContours[bodies[i]]);
 		cout << endl;
 	}

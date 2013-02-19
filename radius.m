@@ -1,11 +1,11 @@
 clear;
 close all;
 
-data = load('p2h_f.csv');
+data = load('p3h_f.csv');
 
 range = 680:2485;
 range = 680:3485;
-range = 680:4000;
+range = 680:4400;
 
 frames = [];
 tempdata = [];
@@ -17,7 +17,7 @@ prevA = -1;
 for i = range
     states = data(find(data(:,1) == i),:); % find all states for frame
     if length(states) > 0 % TODO iterate over all detections (do one for now)
-        frames = [frames i];
+        
         %tempdata = [tempdata; states(find(states(:,4) == max(states(:,4))),:)]; % save
         maxstates = states(find(states(:,4) == max(states(:,4))),:); % find largest states
         % 
@@ -29,13 +29,15 @@ for i = range
         % find closest state
         minDistance = Inf;
         for j = 1:size(states, 1)
-            stateDistance = sqrt((states(j, 2) - prevX)^2 + (states(j, 3) - prevY)^2);
+            %stateDistance = sqrt((states(j, 2) - prevX)^2 + (states(j, 3) - prevY)^2);
             stateDistance = abs(states(j, 4) - prevA);
             if stateDistance < minDistance
                 maxstates = states(j, :);
                 minDistance = stateDistance;
             end
         end
+        if minDistance < 50
+            frames = [frames i];
         % select 1 state only
         if length(maxstates) > 1
             tempdata = [tempdata; maxstates(1,:)];
@@ -46,6 +48,7 @@ for i = range
         prevX = tempdata(size(tempdata, 1), 2);
         prevY = tempdata(size(tempdata, 1), 3);
         prevA = tempdata(size(tempdata, 1), 4);
+        end
     end
 end
 
@@ -103,8 +106,12 @@ set(gcf,'PaperPosition',[0 0 3 3])
 
 result = figure;
 imagenum = 0;
-for i=frames; %680:2485
-    image = imread(sprintf('/media/Charence500/Data/20121221/10/2/frame%04d.jpg',i));
+
+kkk=1:10:length(frames);
+
+for i=frames(kkk) %680:2485
+    i
+    image = imread(sprintf('/media/Charence500/Data/20121221/10/3/frame%04d.jpg',i));
     %image = imread(sprintf('/home/charence/Workspace/biomotion-vision/images/set2/3/10/frame%04d.jpg',i));
     imshow(image)
     %states = xfilt(find(xfilt(:,1) == i),:); % find all states for xfilt
@@ -112,12 +119,15 @@ for i=frames; %680:2485
     %    tempdata = [tempdata; states(find(states(:,4) == max(states(:,4))),:)]; % save
     %end
     hold on
-    plot(y(1,i-679), y(2,i-679), 'bo','linewidth',18);
-    plot(xfilt(1,i-679), xfilt(2,i-679), 'rx','linewidth',18);
-    % save result figure
-    print(result, ['/media/Charence500/Data/temp/frame' int2str(imagenum)], '-dpng');
+    j = find(frames == i);
+    if length(j) > 0
+        plot(y(1,j), y(2,j), 'bo','linewidth',18);
+        plot(xfilt(1,j), xfilt(2,j), 'rx','linewidth',18);
+        % save result figure
+        print(result, ['/media/Charence500/Data/temp/frame' int2str(imagenum)], '-dpng');
+    end
     %print(result, ['/home/charence/Workspace/biomotion-vision/images/set2/3/10/temp/frame' int2str(imagenum)], '-dpng');
-    pause(0.001)
+    %pause(0.001)
     clf
     imagenum = imagenum + 1;
 end
