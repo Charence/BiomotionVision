@@ -106,8 +106,8 @@ int main(int argc, const char** argv) {
 
 	// process sequence
 	for (int i = start; i <= end; i++) {
-		/*if (i > 200)
-			i = 1050;*/
+		if (i > 200)
+			i = 1050; // 999; // 1050;
 		char filename [128];
 		sprintf(filename, filepath, persons, i);
 		//cout << "In: " << filename << endl;
@@ -156,12 +156,15 @@ static vector<ObjectInfo> detectObjects(cv::Mat image) {
 	cv::dilate(fgMask, fgMask, element);
 	cv::Mat background;
 	bgmodel.getBackgroundImage(background);
+	//cv::imshow("back", background);
 
 	// subtract background from original image
 	cv::Mat foreground;
 	//cv::not
 	cv::threshold(fgMask, fgMask, 128, 255, cv::THRESH_BINARY);
 	image.copyTo(foreground, fgMask);
+	cv::imshow("fg", fgMask);
+	cv::imshow("fore", foreground);
 
 	// edge information
 	int lowThreshold = 100;
@@ -228,6 +231,7 @@ static vector<ObjectInfo> detectObjects(cv::Mat image) {
 		}
 	}
 	
+	cv::Mat bodiesHeads = cv::Mat::zeros(image.size(), CV_8UC3);
 	// detect bodies
 	for (int i = 0; i < objectContours.size(); i++) {
 		// if contour is too big
@@ -328,6 +332,7 @@ static vector<ObjectInfo> detectObjects(cv::Mat image) {
 					// process contour by eroding it
 					cv::Mat aContour = cv::Mat::zeros(image.size(), CV_8UC3);
 					drawContours(aContour, bodyContours, j, colourWhite, CV_FILLED, 8, bodyHierarchy, 0, cv::Point());
+					drawContours(bodiesHeads, bodyContours, j, colourWhite, 2, 8, bodyHierarchy, 0, cv::Point());
 					cv::erode(aContour, aContour, element);
 					//cv::erode(aContour, aContour, element);
 					//cv::dilate(aContour, aContour, element);
@@ -494,7 +499,7 @@ static vector<ObjectInfo> detectObjects(cv::Mat image) {
 	}*/
 
 	// draw bodies and heads
-	cv::Mat bodiesHeads = cv::Mat::zeros(image.size(), CV_8UC3);
+	//cv::Mat bodiesHeads = cv::Mat::zeros(image.size(), CV_8UC3);
 	for (int i = 0; i < bodies.size(); i++) {
 		// draw body
 		cv::Scalar colour = cv::Scalar(rng.uniform(0, 255), rng.uniform(0, 255), rng.uniform(0, 255));
@@ -515,14 +520,14 @@ static vector<ObjectInfo> detectObjects(cv::Mat image) {
 	//cv::imshow("Hue", imageHSVSlices[0]);
 	//cv::imshow("Saturation", imageHSVSlices[1]);
 	//cv::imshow("Value", imageHSVSlices[2]);
-	//cv::imshow("fgMask", fgMask);
+	cv::imshow("fgMask", fgMask);
 	cv::imshow("Foreground", foreground);
-	//cv::imshow("Canny", imageCanny);
-	//cv::imshow("WeightMap", weightMap);
-	//cv::imshow("Gradient Image", imageGradient);
-	//cv::imshow("Weighted-Gradient Image", weightedGradient);
+	cv::imshow("Canny", imageCanny);
+	cv::imshow("WeightMap", weightMap);
+	cv::imshow("Gradient Image", imageGradient);
+	cv::imshow("Weighted-Gradient Image", weightedGradient);
 	//cv::imshow("Contours", imageContours);
-	//cv::imshow("Body & Head", bodiesHeads);
+	cv::imshow("Body & Head", bodiesHeads);
 	cvWaitKey(5);
 	
 	return objects;
