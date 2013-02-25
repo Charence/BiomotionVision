@@ -147,6 +147,8 @@ void PointTracker::update( const std::vector< cv::Mat > &observations )
 	    }
 	}
 
+      std::cout << min_dist << std::endl;
+
       // If found, correct the filter and remove it from the unassigned filter list
       if( min_dist < dist_thresh )
 	{
