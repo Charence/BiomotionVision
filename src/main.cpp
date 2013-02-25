@@ -23,12 +23,15 @@ using namespace cv;
 using namespace std;
 
 // methods
-static vector<ObjectInfo> detectObjects(cv::Mat image);
-static void trackObjects(vector<ObjectInfo> detectedObjects);
+//static vector<ObjectInfo> detectObjects(cv::Mat image);
+static vector<cv::Mat> detectObjects(cv::Mat image);
+//static void trackObjects(vector<ObjectInfo> detectedObjects);
+static void trackObjects(vector<cv::Mat> detectedObjects);
 static double euclideanDistance(cv::Point p, cv::Point q);
 static float getContourRadius(vector<cv::Point> contour);
 static bool isBody(vector<cv::Point> contour);
 static bool isHead(vector<cv::Point> contour, vector<cv::Point> bodyContour);
+static void predictObjects(cv::Mat image);
 
 // constants
 const int history = 200;
@@ -106,8 +109,8 @@ int main(int argc, const char** argv) {
 
 	// process sequence
 	for (int i = start; i <= end; i++) {
-		if (i > 200)
-			i = 1050; // 999; // 1050;
+		/*if (i > 200)
+			i = 1050; // 999; // 1050;*/
 		char filename [128];
 		sprintf(filename, filepath, persons, i);
 		//cout << "In: " << filename << endl;
@@ -119,20 +122,24 @@ int main(int argc, const char** argv) {
 		}
 		// detect objects
 		learningRate = (i > 200) ? 0.00005 : 0.01;
-		vector<ObjectInfo> detectedObjects = detectObjects(image);
+		//vector<ObjectInfo> detectedObjects = detectObjects(image);
+		vector<cv::Mat> detectedObjects = detectObjects(image);
 		// homography
 		//detectedObjects = ho
 		// track objects
 		//objectTracker->update(detectedObjects);
 		trackObjects(detectedObjects);
+		predictObjects(image);
 		// translate coordinates
 	}
 
 	return 0;
 }
 
-static vector<ObjectInfo> detectObjects(cv::Mat image) {
+//static vector<ObjectInfo> detectObjects(cv::Mat image) {
+static vector<cv::Mat> detectObjects(cv::Mat image) {
 	vector<ObjectInfo> objects;
+	vector<cv::Mat> points;
 
 	// convert to HSV
 	cv::Mat imageHSV;
@@ -234,25 +241,6 @@ static vector<ObjectInfo> detectObjects(cv::Mat image) {
 	cv::Mat bodiesHeads = cv::Mat::zeros(image.size(), CV_8UC3);
 	// detect bodies
 	for (int i = 0; i < objectContours.size(); i++) {
-		// if contour is too big
-		/*if (getContourRadius(objectContours[i]) > BODYSIZE*2) {
-			// TODO cut down to size
-			// TODO consider just slicing it
-			// process contour by eroding it
-			cv::Mat largeContour = cv::Mat::zeros(imageCanny.size(), CV_8UC3);
-			drawContours(largeContour, objectContours, i, colourRed, CV_FILLED, 8, objectHierarchy, 0, cv::Point());
-			// erode until large contour becomes 2+
-			vector< vector<cv::Point> > largeContours;
-			vector<cv::Vec4i> largeHierarchy;
-			do {
-				cv::erode(largeContour, largeContour, element);
-				cv::Canny(largeContour, largeContour, lowThreshold, lowThreshold*ratio, kernelSize);
-				cv::findContours(largeContour, largeContours, largeHierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, cv::Point(0, 0));
-			} while (largeContours.size() > 1 || (largeContours.size() == 1 && getContourRadius(largeContours[0]))); // TODO potential infinite bug here
-			for (int j = 0; j < largeContours.size(); j++) {
-				objectContours.push_back(largeContours[j]);
-			}
-		}*/
 		if (isBody(objectContours[i])) {
 			// predict head position
 			cv::Point2f defaultHeadCenter;
@@ -371,133 +359,6 @@ static vector<ObjectInfo> detectObjects(cv::Mat image) {
 		}
 	}
 
-	/*
-	// detailed contours
-	vector< vector<cv::Point> > contours;
-	vector<cv::Vec4i> hierarchy;
-	cv::findContours(weightedGradient, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, cv::Point(0, 0));
-	*/
-	
-	// TODO fgmask -> bodies
-	// TODO seg_fg -> heads
-
-	/*
-	// draw contours
-	cv::Mat imageContours = cv::Mat::zeros(imageCanny.size(), CV_8UC3);
-	// detect bodies
-	for (int i = 0; i < contours.size(); i++) {
-		cv::Scalar colourRed = cv::Scalar(0, 0, 255);
-		if (drawContour)
-			drawContours(imageContours, contours, i, colourRed, 2, 8, hierarchy, 0, cv::Point());
-		// if contour is too big
-		if (getContourRadius(contours[i]) > BODYSIZE*2) {
-			// TODO consider just slicing it
-			// process contour by eroding it
-			cv::Mat largeContour = cv::Mat::zeros(imageCanny.size(), CV_8UC3);
-			drawContours(largeContour, contours, i, colourRed, CV_FILLED, 8, hierarchy, 0, cv::Point());
-			// erode until large contour becomes 2+
-			vector< vector<cv::Point> > largeContours;
-			vector<cv::Vec4i> largeHierarchy;
-			do {
-				cv::erode(largeContour, largeContour, element);
-				cv::Canny(largeContour, largeContour, lowThreshold, lowThreshold*ratio, kernelSize);
-				cv::findContours(largeContour, largeContours, largeHierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, cv::Point(0, 0));
-			} while (largeContours.size() > 1); // TODO potential infinite bug here
-			for (int j = 0; j < largeContours.size(); j++) {
-				contours.push_back(largeContours[j]);
-			}
-		}
-		// TODO get rid of sub contours
-		if (isBody(contours[i])) {
-			// store body index
-			bodies.push_back(i);
-			// predict head position
-			cv::Point2f defaultHeadCenter;
-			// body bounding box
-			cv::RotatedRect minBodyRect;
-			minBodyRect = cv::minAreaRect(cv::Mat(contours[i]));
-			// body bounding circle radius
-			float headOffset = getContourRadius(contours[i]); //*0.7;
-			// image centre
-			cv::Point2f imageCentre(image.size().width/2, image.size().height/2);
-			// find gradient
-			float m = (minBodyRect.center.y - imageCentre.y)/(minBodyRect.center.x - imageCentre.x);
-			// find angle
-			double angle;
-			if (minBodyRect.center.x <= imageCentre.x && minBodyRect.center.y < imageCentre.y) {
-				// top left quad
-				angle = atan((imageCentre.x - minBodyRect.center.x)/(imageCentre.y - minBodyRect.center.y));
-			}
-			else if (minBodyRect.center.x <= imageCentre.x) {
-				// bottom left quad
-				angle = PI - atan((imageCentre.x - minBodyRect.center.x)/(minBodyRect.center.y - imageCentre.y));
-			}
-			else if (minBodyRect.center.x > imageCentre.x && minBodyRect.center.y > imageCentre.y) {
-				// bottom right quad
-				angle = PI + atan((minBodyRect.center.x - imageCentre.x)/(minBodyRect.center.y - imageCentre.y));
-			}
-			else {
-				// top right quad
-				angle = 2*PI - atan((minBodyRect.center.x - imageCentre.x)/(imageCentre.y - minBodyRect.center.y));
-			}
-			do {
-				headOffset *= 0.7;
-				defaultHeadCenter = cv::Point2f(minBodyRect.center.x - headOffset * sin(angle), minBodyRect.center.y - headOffset * cos(angle));
-			} while (cv::pointPolygonTest(contours[i], defaultHeadCenter, true) <= 0 && headOffset >= 1);
-			// remove body and head if body too small for head
-			if (headOffset < 1) {
-				// remove body
-				bodies.pop_back();
-			}
-			else {
-				//angle = angle * 180/PI;
-				headCenter.push_back(defaultHeadCenter);
-				headRadius.push_back(0); // default head size
-				// detect head
-				for (int j = 0; j < contours.size(); j++) {
-					if (i != j) {
-						// process contour by eroding it
-						cv::Mat aContour = cv::Mat::zeros(imageCanny.size(), CV_8UC3);
-						drawContours(aContour, contours, j, colourRed, CV_FILLED, 8, hierarchy, 0, cv::Point());
-						cv::erode(aContour, aContour, element);
-						//cv::erode(aContour, aContour, element);
-						//cv::dilate(aContour, aContour, element);
-						cv::Canny(aContour, aContour, lowThreshold, lowThreshold*ratio, kernelSize);
-						vector< vector<cv::Point> > subContours;
-						vector<cv::Vec4i> subHierarchy;
-						cv::findContours(aContour, subContours, subHierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, cv::Point(0, 0));
-						//
-						for (int k = 0; k < subContours.size(); k++) {
-							//cv::drawContours(imageContours, subContours, k, cv::Scalar(0, 255, 0), 2, 8, hierarchy, 0, cv::Point());
-							if (isHead(subContours[k], contours[i])) {
-								vector<cv::Point> contourPoly;
-								cv::Point2f center;
-								float radius;
-								if (subContours.size() > 1) {
-									approxPolyDP(cv::Mat(subContours[k]), contourPoly, 3, true);
-								}
-								else {
-									approxPolyDP(cv::Mat(contours[j]), contourPoly, 3, true);
-								}
-								minEnclosingCircle((cv::Mat)contourPoly, center, radius);
-								float distanceOld = euclideanDistance(headCenter[headCenter.size() - 1], defaultHeadCenter);
-								float distanceNew = euclideanDistance(center, defaultHeadCenter);
-								if (headRadius[headRadius.size() - 1] == 0 || (distanceOld > 0 && distanceNew < distanceOld)) {
-									// store first detected head or store if it is a better detection
-									headCenter[headCenter.size() - 1] = center;
-									headRadius[headRadius.size() - 1] = radius;
-								}
-							}
-						}
-					}
-				}
-				if (headRadius[headRadius.size() - 1] == 0) {
-					headRadius[headRadius.size() - 1] = 10;
-				}
-			}
-		}
-	}*/
-
 	// draw bodies and heads
 	//cv::Mat bodiesHeads = cv::Mat::zeros(image.size(), CV_8UC3);
 	for (int i = 0; i < bodies.size(); i++) {
@@ -514,6 +375,11 @@ static vector<ObjectInfo> detectObjects(cv::Mat image) {
 		cout << "," << bodyRect.center.x << "," << bodyRect.center.y;
 		cout << "," << cv::contourArea(objectContours[bodies[i]]);
 		cout << endl;
+		// output points
+		cv::Mat point(2, 1, CV_32FC1);
+		point.at<float>(0) = headCenter[i].x;
+		point.at<float>(1) = headCenter[i].y;
+		points.push_back(point);
 	}
 
 	//cv::imshow("Original", image);
@@ -530,7 +396,8 @@ static vector<ObjectInfo> detectObjects(cv::Mat image) {
 	cv::imshow("Body & Head", bodiesHeads);
 	cvWaitKey(5);
 	
-	return objects;
+	return points;
+	//return objects;
 }
 
 static double euclideanDistance(cv::Point p, cv::Point q) {
@@ -577,127 +444,17 @@ static bool isHead(vector<cv::Point> contour, vector<cv::Point> bodyContour) {
 	return false;
 }
 
-/*
-void drawContours() {
-	// draw contours
-	cv::Mat imageContours = cv::Mat::zeros(imageCanny.size(), CV_8UC3);
-	for (int i = 0; i < contours.size(); i++) {
-		//if (abs(PI*pow(radius[i],2) - contourArea(contours[i], false))/(PI*pow(radius[i],2)) < 0.55 && radius[i] > 10) { //40) {
-		//if (abs(PI*pow(radius[i],2) - minRect[i].size.height*minRect[i].size.width)/(PI*pow(radius[i],2)) < 0.4 && radius[i] > 10) { //40) {
-		if (abs(PI*pow(radius[i],2) - contourArea(contours[i], false))/(PI*pow(radius[i],2)) < 0.55 && radius[i] > 10) { //40) {
-			cv::Scalar colour = cv::Scalar(rng.uniform(0, 255), rng.uniform(0, 255), rng.uniform(0, 255));
-			// contour
-			if (drawContour)
-				drawContours(imageContours, contours, i, colour, 2, 8, hierarchy, 0, cv::Point());
-			// rotated rectangle
-			if (drawRectangle) {
-				cv::Point2f rectPoints[4];
-				minRect[i].points(rectPoints);
-				for (int j = 0; j < 4; j++) {
-					line(imageContours, rectPoints[j], rectPoints[(j+1)%4], colour, 1, 8);
-				}
-			}
-			// ellipse
-			if (drawEllipse)
-				ellipse(imageContours, minEllipse[i], colour, 2, 8);
-			// circle
-			if (drawCircle)
-				circle(imageContours, center[i], (int)radius[i], colour, 2, 8, 0);
-			// image centre
-			cv::Point2f imageCentre(imageContours.size().width/2, imageContours.size().height/2);
-			// line from contour to centre of image
-			if (drawLines)
-				line(imageContours, minRect[i].center, imageCentre, colour, 1, 8);
-			// find angle of contour
-			double angle;
-			if (minRect[i].center.x <= imageCentre.x && minRect[i].center.y < imageCentre.y) {
-				// top left quad
-				angle = atan((imageCentre.x - minRect[i].center.x)/(imageCentre.y - minRect[i].center.y));
-			}
-			else if (minRect[i].center.x <= imageCentre.x) {
-				// bottom left quad
-				angle = PI - atan((imageCentre.x - minRect[i].center.x)/(minRect[i].center.y - imageCentre.y));
-			}
-			else if (minRect[i].center.x > imageCentre.x && minRect[i].center.y > imageCentre.y) {
-				// bottom right quad
-				angle = PI + atan((minRect[i].center.x - imageCentre.x)/(minRect[i].center.y - imageCentre.y));
-			}
-			else {
-				// top right quad
-				angle = 2*PI - atan((minRect[i].center.x - imageContours.size().width/2)/(imageContours.size().height/2 - minRect[i].center.y));
-			}
-			angle = angle * 180/PI;*/
-			/*
-			// extract rotated ROI
-			// http://answers.opencv.org/question/497/extract-a-rotatedrect-area/
-			// get angle and size from bounding box
-			angle = minRect[i].angle;
-			cv::Size rectSize = minRect[i].size;
-			// thanks to http://felix.abecassis.me/2011/10/opencv-rotation-deskewing
-			if (angle < -45) {
-				angle += 90;
-				swap(rectSize.width, rectSize.height);
-			}
-			// rotation matrix
-			cv::Mat rotationMatrix = cv::getRotationMatrix2D(minRect[i].center, angle, 1);
-			cv::Mat rotationMatrixInverse = cv::getRotationMatrix2D(minRect[i].center, -angle, 1);
-			// perform affine transformation
-			cv::Mat rotated;
-			cv::warpAffine(image, rotated, rotationMatrix, image.size(), cv::INTER_CUBIC);
-			// crop the image
-			cv::Mat cropped;
-			try {
-				cv::getRectSubPix(rotated, rectSize, minRect[i].center, cropped);
-				cv::imshow("Cropped " +i, cropped);
-			}
-			catch (cv::Exception e) {
-			}
-			*/
-			/*
-			// rotate contour
-			cv::Mat contourMat(3, contours[i].size(), CV_64FC1);
-			double* row0 = contourMat.ptr<double>(0);
-			double* row1 = contourMat.ptr<double>(1);
-			double* row2 = contourMat.ptr<double>(2);
-			for (int j = 0; j < (int) contours[i].size(); j++) {
-				row0[j] = (double) (contours[i])[j].x;
-				row1[j] = (double) (contours[i])[j].y;
-				row2[j] = 1;
-			}
-			cv::Mat uprightContour = rotationMatrix * contourMat;
-			cv::imshow("upright " + i, uprightContour);
-			// find bounding box
-			try {
-				cv::Rect boundRect = cv::boundingRect(uprightContour);
-			}
-			catch (cv::Exception e) {
-			}*/
-			//rectangle(imageContours, boundRect[i].tl(), boundRect[i].br(), colour, 2, 8, 0);
-			/*
-			// save object
-			ObjectInfo object(minRect[i], contours[i]);
-			objects.push_back(object);
-			cout << imageNum;
-			if (storeContourArea)
-				cout << "," << cv::contourArea(contours[i], false);
-			if (storeRectangleCenter)
-				cout << "," << minRect[i].center.x << "," << minRect[i].center.y;
-			if (storeRectangleAngle)
-				cout << "," << minRect[i].angle;
-			if (storeRectangleSize)
-				cout << "," << minRect[i].size.width << "," << minRect[i].size.height; 
-			if (storeCircleCenter)
-				cout << "," << center[i].x << "," << center[i].y;
-			if (storeCircleRadius)
-				cout << "," << (int)radius[i];
-			cout << endl;
-		}
-	}
-}*/
-
-static void trackObjects(vector<ObjectInfo> detectedObjects) {
+//static void trackObjects(vector<ObjectInfo> detectedObjects) {
+static void trackObjects(vector<cv::Mat> detectedObjects) {
 	// convert format of detected objects
-	const vector<cv::Mat > observations;
+	const vector<cv::Mat> observations;
+	/*observations.resize(detectedObjects.size());
+	for (int i = 0; i < detectedObjects.size(); i++) {
+		cv::Mat observation(2, 1, CV_32FC1);
+		observation.at<float>(0) = detectedObjects[i].x;
+		observation.at<float>(1) = detectedObjects[i].y;
+		observations.push_back(observation);
+	}*/
 	// lock the tracking class as we are updating the Kalman filters
 	// calculate the time since the last prediction
 	const double timeDiff = (static_cast<double>(cv::getTickCount()) - pointTracker.updateLastPredictionTime()) / cv::getTickFrequency();
@@ -706,6 +463,24 @@ static void trackObjects(vector<ObjectInfo> detectedObjects) {
 	// set last prediction time
 	//setLastPredictionTime(static_cast<double>(cv::getTickCount())); // updateLastPredictionTime gets and sets time
 	// perform update
-	pointTracker.update(observations);
+	//pointTracker.update(observations);
+	pointTracker.update(detectedObjects);
 	// unlock the tracking class
+}
+
+static void predictObjects(cv::Mat image) {
+	// 
+	const double start = static_cast<double>(cv::getTickCount());
+	// lock
+	// calculate time since last prediction
+	const double timeDiff = (static_cast<double>(cv::getTickCount()) - pointTracker.updateLastPredictionTime()) / cv::getTickFrequency();
+	// perform prediction
+	const vector<cv::Mat> predictedStates = pointTracker.predict(timeDiff);
+	for (int i = 0; i < predictedStates.size(); i++) {
+		circle(image, cv::Point(predictedStates[i].at<float>(0), predictedStates[i].at<float>(1)), 5, cv::Scalar(255, 0, 0), 2, 8, 0);
+	}
+	cv::imshow("Tracking", image);
+	// set last prediction time
+	// already done
+	// unlock
 }
