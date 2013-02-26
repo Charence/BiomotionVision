@@ -102,7 +102,7 @@ int main(int argc, const char** argv) {
 	}
 
 	// setup tracker
-	pointTracker.setArguments(3.5, 1.5);
+	pointTracker.setArguments(3.5, 15);
 
 	//cout << "ImageNum,ContourArea,RectCentreX,RectCentreY,RectAngle,RectWidth,RectHeight,CircCentreX,CircCentreY,Radius" << endl;
 	//cout << "ImageNum,ContourArea,CircCentreX,CircCentreY,Radius" << endl;
@@ -128,8 +128,10 @@ int main(int argc, const char** argv) {
 		//detectedObjects = ho
 		// track objects
 		//objectTracker->update(detectedObjects);
-		trackObjects(detectedObjects);
-		predictObjects(image);
+		if (i > 200) {
+			trackObjects(detectedObjects);
+			predictObjects(image);
+		}
 		// translate coordinates
 	}
 
