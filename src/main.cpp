@@ -102,7 +102,7 @@ int main(int argc, const char** argv) {
 	}
 
 	// setup tracker
-	pointTracker.setArguments(3.5, 15);
+	pointTracker.setArguments(3.5, 50);
 
 	//cout << "ImageNum,ContourArea,RectCentreX,RectCentreY,RectAngle,RectWidth,RectHeight,CircCentreX,CircCentreY,Radius" << endl;
 	//cout << "ImageNum,ContourArea,CircCentreX,CircCentreY,Radius" << endl;
