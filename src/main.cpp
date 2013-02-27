@@ -61,6 +61,11 @@ static cv::Mat measurement = Mat::zeros(1, 1, CV_32F);
 //ObjectTracker* objectTracker = new ObjectTracker();
 PointTracker pointTracker;
 static int imageNum;
+static int delay = 5;
+static int numFrames = 0;
+static int numMerged = 0;
+static int numSplit = 0;
+static int numUnsplit = 0;
 
 int main(int argc, const char** argv) {
 	int persons = 1;
@@ -122,6 +127,7 @@ int main(int argc, const char** argv) {
 		}
 		// detect objects
 		learningRate = (i > 200) ? 0.00005 : 0.01;
+		//delay = (i > 900) ? 500 : 5; // slows down update so I can get screencaps
 		//vector<ObjectInfo> detectedObjects = detectObjects(image);
 		vector<cv::Mat> detectedObjects = detectObjects(image);
 		// homography
@@ -134,6 +140,11 @@ int main(int argc, const char** argv) {
 		}
 		// translate coordinates
 	}
+
+	cout << "Total frames: " << numFrames << endl;
+	cout << "Merged frames: " << numMerged << endl;
+	cout << "Split frames: " << numSplit << endl;
+	cout << "Unsplit frames: " << numUnsplit << endl;
 
 	return 0;
 }
@@ -221,6 +232,10 @@ static vector<cv::Mat> detectObjects(cv::Mat image) {
 	for (int i = 0; i < objectContours.size(); i++) {
 		// if contour is too big
 		if (getContourRadius(objectContours[i]) > BODYSIZE*2) {
+			// increment merged counter
+			numMerged++;
+			cout << "Merged object" << endl;
+
 			// TODO cut down to size
 			// TODO consider just slicing it
 			// process contour by eroding it
@@ -234,6 +249,16 @@ static vector<cv::Mat> detectObjects(cv::Mat image) {
 				cv::Canny(largeContour, largeContour, lowThreshold, lowThreshold*ratio, kernelSize);
 				cv::findContours(largeContour, largeContours, largeHierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, cv::Point(0, 0));
 			} while (largeContours.size() == 1); // || (largeContours.size() == 1 && getContourRadius(largeContours[0]) >= BODYSIZE)); // TODO potential infinite bug here
+			if (largeContours.size() > 1) {
+				// increment split counter
+				numSplit++;
+				cout << "Split object" << endl;
+			}
+			else if (largeContours.size() == 1) {
+				// increment unsplit counter
+				numUnsplit++;
+				cout << "No split - size still 1" << endl;
+			}
 			for (int j = 0; j < largeContours.size(); j++) {
 				objectContours.push_back(largeContours[j]);
 			}
@@ -384,6 +409,9 @@ static vector<cv::Mat> detectObjects(cv::Mat image) {
 		points.push_back(point);
 	}
 
+	// increment frame counter
+	numFrames++;
+
 	//cv::imshow("Original", image);
 	//cv::imshow("Hue", imageHSVSlices[0]);
 	//cv::imshow("Saturation", imageHSVSlices[1]);
@@ -396,7 +424,7 @@ static vector<cv::Mat> detectObjects(cv::Mat image) {
 	cv::imshow("Weighted-Gradient Image", weightedGradient);
 	//cv::imshow("Contours", imageContours);
 	cv::imshow("Body & Head", bodiesHeads);
-	cvWaitKey(5);
+	cvWaitKey(delay); //5
 	
 	return points;
 	//return objects;

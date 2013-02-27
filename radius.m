@@ -1,7 +1,7 @@
 clear;
 close all;
 
-data = load('p3_g.csv');
+data = load('p1_g.csv');
 
 range = 680:2485;
 range = 680:3485;
@@ -132,8 +132,8 @@ imagenum = 0;
 kkk=1:1:length(frames);
 
 for i=frames(kkk) %680:2485
-    %image = imread(sprintf('/media/Charence500/Data/20121221/10/2/frame%04d.jpg',i));
-    image = imread(sprintf('/home/charence/Workspace/biomotion-vision/images/set2/3/10/frame%04d.jpg',i));
+    image = imread(sprintf('/media/Charence500/Data/20121221/10/1/frame%04d.jpg',i));
+    %image = imread(sprintf('/home/charence/Workspace/biomotion-vision/images/set2/3/10/frame%04d.jpg',i));
     imshow(image)
     %states = xfilt(find(xfilt(:,1) == i),:); % find all states for xfilt
     %if length(states) > 0 % TODO iterate over all detections (do one for now)
@@ -149,6 +149,6 @@ for i=frames(kkk) %680:2485
         imagenum = imagenum + 1;
     end
     %print(result, ['/home/charence/Workspace/biomotion-vision/images/set2/3/10/temp/frame' int2str(imagenum)], '-dpng');
-    %pause(0.001)
+    pause(0.001)
     clf
 end
