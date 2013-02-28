@@ -1,16 +1,17 @@
 clear;
 close all;
 
-data = load('p1_g.csv');
+data = load('p3_g.csv');
 
-range = 680:2485;
-range = 680:3485;
-range = 680:4400;
+%range = 680:2140; % 1p
+%range = 290:3330; % 2p
+%range = 350:3330; % 2p
+range = 700:3900; % 3p
 
 frames = [];
 tempdata = [];
 
-tracks = 2;
+tracks = 1;
 
 prevX = -1;
 prevY = -1;
@@ -29,12 +30,15 @@ for i = range
         closestTrack = -1;
         % if none, create new tracker and store states
         if closestTrack == -1
+            %track(length(track)+1).prevX = states(1, 2);
+            %track(length(track)+1).prevY = states(1, 3);
+            %track(length(track)+1).prevA = states(1, 4);
             track(length(track)+1).prevX = states(1, 5);
             track(length(track)+1).prevY = states(1, 6);
             track(length(track)+1).prevA = states(1, 7);
         end
     end
-    if length(states) > 0 % TODO iterate over all detections (do one for now)
+    if size(states, 1) > 3 % TODO iterate over all detections (do one for now)
         %for 1:length(track)
             % 
         %end
@@ -42,10 +46,12 @@ for i = range
         maxstates = states(find(states(:,4) == max(states(:,4))),:); % find largest states
         % 
         if prevX == -1
-            prevX = states(1, 5);
-            prevY = states(1, 6);
-            prevA = states(1, 7);
+            prevX = states(2, 5);
+            prevY = states(2, 6);
+            prevA = states(2, 7);
         end
+    end
+    if size(states, 1) > 0
         % find closest state
         minDistance = Inf;
         for j = 1:size(states, 1)
@@ -67,6 +73,9 @@ for i = range
                 tempdata = [tempdata; maxstates];
             end
             % store previous position
+            %prevX = tempdata(size(tempdata, 1), 2);
+            %prevY = tempdata(size(tempdata, 1), 3);
+            %prevA = tempdata(size(tempdata, 1), 4);
             prevX = tempdata(size(tempdata, 1), 5);
             prevY = tempdata(size(tempdata, 1), 6);
             prevA = tempdata(size(tempdata, 1), 7);
@@ -132,7 +141,7 @@ imagenum = 0;
 kkk=1:1:length(frames);
 
 for i=frames(kkk) %680:2485
-    image = imread(sprintf('/media/Charence500/Data/20121221/10/1/frame%04d.jpg',i));
+    image = imread(sprintf('/media/Charence500/Data/20121221/10/3/frame%04d.jpg',i));
     %image = imread(sprintf('/home/charence/Workspace/biomotion-vision/images/set2/3/10/frame%04d.jpg',i));
     imshow(image)
     %states = xfilt(find(xfilt(:,1) == i),:); % find all states for xfilt
@@ -140,7 +149,7 @@ for i=frames(kkk) %680:2485
     %    tempdata = [tempdata; states(find(states(:,4) == max(states(:,4))),:)]; % save
     %end
     hold on
-    j = find(frames == i);
+    j = find(frames == i)
     if length(j) > 0
         plot(y(1,j), y(2,j), 'bo','linewidth',18);
         plot(xfilt(1,j), xfilt(2,j), 'rx','linewidth',18);
@@ -149,6 +158,6 @@ for i=frames(kkk) %680:2485
         imagenum = imagenum + 1;
     end
     %print(result, ['/home/charence/Workspace/biomotion-vision/images/set2/3/10/temp/frame' int2str(imagenum)], '-dpng');
-    pause(0.001)
+    pause(0.1)
     clf
 end
