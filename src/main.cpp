@@ -25,6 +25,7 @@ using namespace std;
 // methods
 //static vector<ObjectInfo> detectObjects(cv::Mat image);
 static vector<cv::Mat> detectObjects(cv::Mat image);
+static vector<cv::Mat> detectPeople(cv::Mat image);
 //static void trackObjects(vector<ObjectInfo> detectedObjects);
 static void trackObjects(vector<cv::Mat> detectedObjects);
 static double euclideanDistance(cv::Point p, cv::Point q);
@@ -513,4 +514,9 @@ static void predictObjects(cv::Mat image) {
 	// set last prediction time
 	// already done
 	// unlock
+}
+
+static vector<cv::Mat> detectPeople(cv::Mat image) {
+	vector<cv::Mat> points;
+	return points;
 }
