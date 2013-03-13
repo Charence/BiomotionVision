@@ -114,8 +114,8 @@ int main(int argc, const char** argv) {
 
 	// process sequence
 	for (int i = start; i <= end; i++) {
-		/*if (i > 200)
-			i = 1050; // 999; // 1050;*/
+		if (i > 200)
+			i = 999; //1050; // 999; // 1050;*/
 		char filename [128];
 		sprintf(filename, filepath, persons, i);
 		//cout << "In: " << filename << endl;
@@ -412,7 +412,7 @@ static vector<cv::Mat> detectObjects(cv::Mat image) {
 	// increment frame counter
 	numFrames++;
 
-	//cv::imshow("Original", image);
+	cv::imshow("Original", image);
 	//cv::imshow("Hue", imageHSVSlices[0]);
 	//cv::imshow("Saturation", imageHSVSlices[1]);
 	//cv::imshow("Value", imageHSVSlices[2]);
