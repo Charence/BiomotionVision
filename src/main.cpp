@@ -518,5 +518,7 @@ static void predictObjects(cv::Mat image) {
 
 static vector<cv::Mat> detectPeople(cv::Mat image) {
 	vector<cv::Mat> points;
+	// 
+	cv::cvLogPolar(image, image
 	return points;
 }
