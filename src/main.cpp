@@ -23,16 +23,22 @@ using namespace cv;
 using namespace std;
 
 // methods
-//static vector<ObjectInfo> detectObjects(cv::Mat image);
-static vector<cv::Mat> detectObjects(cv::Mat image);
-static vector<cv::Mat> detectPeople(cv::Mat image);
-//static void trackObjects(vector<ObjectInfo> detectedObjects);
-static void trackObjects(vector<cv::Mat> detectedObjects);
 static double euclideanDistance(cv::Point p, cv::Point q);
 static float getContourRadius(vector<cv::Point> contour);
 static bool isBody(vector<cv::Point> contour);
 static bool isHead(vector<cv::Point> contour, vector<cv::Point> bodyContour);
+// annotator
+// trainer
+// detector
+//static vector<ObjectInfo> detectPeople(cv::Mat image);
+static vector<cv::Mat> detectPeople(cv::Mat image);
+static vector<cv::Mat> detectPeopleSegment(cv::Mat image);
+static vector<cv::Mat> detectPeopleClassify(cv::Mat image);
+// IMU
+// tracker
+static void trackObjects(vector<cv::Mat> detectedObjects);
 static void predictObjects(cv::Mat image);
+// evaluator
 
 // constants
 const int history = 200;
@@ -129,8 +135,8 @@ int main(int argc, const char** argv) {
 		// detect objects
 		learningRate = (i > 200) ? 0.00005 : 0.01;
 		//delay = (i > 900) ? 500 : 5; // slows down update so I can get screencaps
-		//vector<ObjectInfo> detectedObjects = detectObjects(image);
-		vector<cv::Mat> detectedObjects = detectObjects(image);
+		//vector<ObjectInfo> detectedObjects = detectPeople(image);
+		vector<cv::Mat> detectedObjects = detectPeople(image);
 		// homography
 		//detectedObjects = ho
 		// track objects
@@ -150,9 +156,83 @@ int main(int argc, const char** argv) {
 	return 0;
 }
 
-//static vector<ObjectInfo> detectObjects(cv::Mat image) {
-static vector<cv::Mat> detectObjects(cv::Mat image) {
-	vector<ObjectInfo> objects;
+///////////////////////// MISCELLANEOUS /////////////////////
+
+static double euclideanDistance(cv::Point p, cv::Point q) {
+	cv::Point diff = p - q;
+	return cv::sqrt(diff.x*diff.x + diff.y*diff.y);
+}
+
+static float getContourRadius(vector<cv::Point> contour) {
+	// get radius
+	vector<cv::Point> contourPoly;
+	cv::Point2f center;
+	float radius;
+	approxPolyDP(cv::Mat(contour), contourPoly, 3, true);
+	minEnclosingCircle((cv::Mat)contourPoly, center, radius);
+	return radius;
+}
+
+static bool isBody(vector<cv::Point> contour) {
+	// min radius based on prior knowledge
+	float radius = getContourRadius(contour);
+	return BODYSIZE < radius && radius < BODYSIZE*2;
+}
+
+static bool isHead(vector<cv::Point> contour, vector<cv::Point> bodyContour) {
+	cv::RotatedRect minRect;
+	minRect = cv::minAreaRect(cv::Mat(contour));
+	// is it within body contour?
+	if (cv::pointPolygonTest(bodyContour, minRect.center, true) > 0) {
+		vector<cv::Point> contourPoly;
+		cv::Point2f center;
+		float radius;
+		approxPolyDP(cv::Mat(contour), contourPoly, 3, true);
+		minEnclosingCircle((cv::Mat)contourPoly, center, radius);
+		// compare contour area with circle area
+		if (abs(PI*pow(radius,2) - cv::contourArea(contour, false))/(PI*pow(radius,2)) < 0.55 && radius > 8 && radius < 20) {
+			// compare contour area with rectangle area
+			//cout << "==== " << abs(PI*pow(radius,2) - minRect.size.height*minRect.size.width)/(PI*pow(radius,2)) << endl;
+			if (abs(PI*pow(radius,2) - minRect.size.height*minRect.size.width)/(PI*pow(radius,2)) < 0.3) {
+			//if (abs(minRect.size.height*minRect.size.width - cv::contourArea(contour, false))/(minRect.size.height*minRect.size.width) < 0.4) {
+				return true;
+			}
+		}
+	}
+	return false;
+}
+
+static cv::Mat toPolar(cv::Mat src) {
+	cv::Mat dst;
+	cv::Mat mapX, mapY;
+
+	// create dst, mapX, mapY
+	dst.create(src.size(), src.type());
+	mapX.create(cv::Size(src.size().height, 360), src.type());
+	mapY.create(cv::Size(src.size().height, 360), src.type());
+
+	return dst;
+}
+
+///////////////////////// ANNOTATOR /////////////////////////
+
+///////////////////////// TRAINER ///////////////////////////
+
+///////////////////////// DETECTOR //////////////////////////
+
+/**
+ * Detect people in the given image
+ * Returns position of all people
+ */
+static vector<cv::Mat> detectPeople(cv::Mat image) {
+	return detectPeopleSegment(image);
+}
+
+/**
+ * Detect people using background segmentation and contours
+ * BSN2013
+ */
+static vector<cv::Mat> detectPeopleSegment(cv::Mat image) {
 	vector<cv::Mat> points;
 
 	// convert to HSV
@@ -428,52 +508,22 @@ static vector<cv::Mat> detectObjects(cv::Mat image) {
 	cvWaitKey(delay); //5
 	
 	return points;
-	//return objects;
 }
 
-static double euclideanDistance(cv::Point p, cv::Point q) {
-	cv::Point diff = p - q;
-	return cv::sqrt(diff.x*diff.x + diff.y*diff.y);
+/**
+ * Detect people using rotation-invariant HOG
+ * mid-April plan
+ */
+static vector<cv::Mat> detectPeopleClassify(cv::Mat image) {
+	vector<cv::Mat> points;
+	// 
+	//cv::cvLogPolar(image, image
+	return points;
 }
 
-static float getContourRadius(vector<cv::Point> contour) {
-	// get radius
-	vector<cv::Point> contourPoly;
-	cv::Point2f center;
-	float radius;
-	approxPolyDP(cv::Mat(contour), contourPoly, 3, true);
-	minEnclosingCircle((cv::Mat)contourPoly, center, radius);
-	return radius;
-}
+///////////////////////// IMU ///////////////////////////////
 
-static bool isBody(vector<cv::Point> contour) {
-	// min radius based on prior knowledge
-	float radius = getContourRadius(contour);
-	return BODYSIZE < radius && radius < BODYSIZE*2;
-}
-
-static bool isHead(vector<cv::Point> contour, vector<cv::Point> bodyContour) {
-	cv::RotatedRect minRect;
-	minRect = cv::minAreaRect(cv::Mat(contour));
-	// is it within body contour?
-	if (cv::pointPolygonTest(bodyContour, minRect.center, true) > 0) {
-		vector<cv::Point> contourPoly;
-		cv::Point2f center;
-		float radius;
-		approxPolyDP(cv::Mat(contour), contourPoly, 3, true);
-		minEnclosingCircle((cv::Mat)contourPoly, center, radius);
-		// compare contour area with circle area
-		if (abs(PI*pow(radius,2) - cv::contourArea(contour, false))/(PI*pow(radius,2)) < 0.55 && radius > 8 && radius < 20) {
-			// compare contour area with rectangle area
-			//cout << "==== " << abs(PI*pow(radius,2) - minRect.size.height*minRect.size.width)/(PI*pow(radius,2)) << endl;
-			if (abs(PI*pow(radius,2) - minRect.size.height*minRect.size.width)/(PI*pow(radius,2)) < 0.3) {
-			//if (abs(minRect.size.height*minRect.size.width - cv::contourArea(contour, false))/(minRect.size.height*minRect.size.width) < 0.4) {
-				return true;
-			}
-		}
-	}
-	return false;
-}
+///////////////////////// TRACKER ///////////////////////////
 
 //static void trackObjects(vector<ObjectInfo> detectedObjects) {
 static void trackObjects(vector<cv::Mat> detectedObjects) {
@@ -516,7 +566,5 @@ static void predictObjects(cv::Mat image) {
 	// unlock
 }
 
-static vector<cv::Mat> detectPeople(cv::Mat image) {
-	vector<cv::Mat> points;
-	return points;
-}
+///////////////////////// EVALUATOR /////////////////////////
+
