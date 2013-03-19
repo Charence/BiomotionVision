@@ -27,6 +27,7 @@ static double euclideanDistance(cv::Point p, cv::Point q);
 static float getContourRadius(vector<cv::Point> contour);
 static bool isBody(vector<cv::Point> contour);
 static bool isHead(vector<cv::Point> contour, vector<cv::Point> bodyContour);
+static cv::Mat toPolar(cv::Mat image);
 // annotator
 // trainer
 // detector
