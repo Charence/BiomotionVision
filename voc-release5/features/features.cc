@@ -142,7 +142,7 @@ mxArray *process(const mxArray *mximage, const mxArray *mxsbin) {
   }
 
   // compute energy in each block by summing over orientations
-  for (int o = 0; o < 9; o++) {
+  for (int o = 0; o < 9; o++) { // 9 orientations
     float *src1 = hist + o*blocks[0]*blocks[1];
     float *src2 = hist + (o+9)*blocks[0]*blocks[1];
     float *dst = norm;

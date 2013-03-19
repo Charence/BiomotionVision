@@ -10,5 +10,7 @@ function [ds, bs, trees] = imgdetect(im, model, thresh)
 %   thresh    Detection threshold (scores must be > thresh)
 
 im = color(im);
-pyra = featpyramid(im, model);
+imG = rgb2gray(im);
+imG = double(imG)/255.0;
+pyra = featpyramid(im, model); % image should be colour with double vals
 [ds, bs, trees] = gdetect(pyra, model, thresh);
