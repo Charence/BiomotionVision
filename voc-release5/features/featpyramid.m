@@ -40,6 +40,8 @@ pyra.imsize = imsize;
 im = double(im);
 for i = 1:interval
   scaled = resize(im, 1/sc^(i-1));
+  %scaled = rgb2gray(scaled); % CHARENCE
+  figure(2); imshow(scaled); % CHARENCE
   if extra_interval > 0
     % Optional (sbin/4) x (sbin/4) features
     pyra.feat{i} = features(scaled, sbin/4);
@@ -54,6 +56,7 @@ for i = 1:interval
   % Remaining pyramid octaves 
   for j = i+interval:interval:max_scale
     scaled = resize(scaled, 0.5);
+    figure(3); imshow(scaled); % CHARENCE
     pyra.feat{j+extra_interval+interval} = features(scaled, sbin);
     pyra.scales(j+extra_interval+interval) = 0.5 * pyra.scales(j+extra_interval);
   end

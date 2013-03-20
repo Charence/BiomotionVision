@@ -1,6 +1,9 @@
 #include <math.h>
 #include "mex.h"
 
+#include <stdio.h>
+#include <stdlib.h>
+
 // small value, used to avoid division by zero
 #define eps 0.0001
 
@@ -34,19 +37,26 @@ static inline int max(int x, int y) { return (x <= y ? y : x); }
 // takes a double color image and a bin size 
 // returns HOG features
 mxArray *process(const mxArray *mximage, const mxArray *mxsbin) {
-  double *im = (double *)mxGetPr(mximage);
-  const int *dims = mxGetDimensions(mximage);
+  double *im = (double *)mxGetPr(mximage); // pointer to mxArray of mximage
+  const int *dims = mxGetDimensions(mximage); // dimensions of mximage {h, w, d}
+  mexPrintf("dims[0] = %d\n", dims[0]); 
+  mexPrintf("dims[1] = %d\n", dims[1]);
+  mexPrintf("dims[2] = %d\n", dims[2]);
+  // check the image has 3 channels
   if (mxGetNumberOfDimensions(mximage) != 3 ||
       dims[2] != 3 ||
       mxGetClassID(mximage) != mxDOUBLE_CLASS)
     mexErrMsgTxt("Invalid input");
 
-  int sbin = (int)mxGetScalar(mxsbin);
+  int sbin = (int)mxGetScalar(mxsbin); // HOG cell size
+  mexPrintf("sbin = %d\n", sbin);
 
   // memory for caching orientation histograms & their norms
-  int blocks[2];
+  int blocks[2]; // number of HOG cells
   blocks[0] = (int)round((double)dims[0]/(double)sbin);
   blocks[1] = (int)round((double)dims[1]/(double)sbin);
+  mexPrintf("blocks[0] = %d\n", blocks[0]);
+  mexPrintf("blocks[1] = %d\n", blocks[1]);
   float *hist = (float *)mxCalloc(blocks[0]*blocks[1]*18, sizeof(float));
   float *norm = (float *)mxCalloc(blocks[0]*blocks[1], sizeof(float));
 
@@ -58,29 +68,30 @@ mxArray *process(const mxArray *mximage, const mxArray *mxsbin) {
   mxArray *mxfeat = mxCreateNumericArray(3, out, mxSINGLE_CLASS, mxREAL);
   float *feat = (float *)mxGetPr(mxfeat);
   
-  int visible[2];
-  visible[0] = blocks[0]*sbin;
-  visible[1] = blocks[1]*sbin;
-  
+  int visible[2]; // visible pixels of mximage
+  visible[0] = blocks[0]*sbin; // height
+  visible[1] = blocks[1]*sbin; // width
+ 
+  // loop through all visible pixels, leaving 1 pixel margin on all sides
   for (int x = 1; x < visible[1]-1; x++) {
     for (int y = 1; y < visible[0]-1; y++) {
       // first color channel
       double *s = im + min(x, dims[1]-2)*dims[0] + min(y, dims[0]-2);
       double dy = *(s+1) - *(s-1);
       double dx = *(s+dims[0]) - *(s-dims[0]);
-      double v = dx*dx + dy*dy;
+      double v = dx*dx + dy*dy; // ch-1 gradient
 
       // second color channel
       s += dims[0]*dims[1];
       double dy2 = *(s+1) - *(s-1);
       double dx2 = *(s+dims[0]) - *(s-dims[0]);
-      double v2 = dx2*dx2 + dy2*dy2;
+      double v2 = dx2*dx2 + dy2*dy2; // ch-2 gradient
 
       // third color channel
       s += dims[0]*dims[1];
       double dy3 = *(s+1) - *(s-1);
       double dx3 = *(s+dims[0]) - *(s-dims[0]);
-      double v3 = dx3*dx3 + dy3*dy3;
+      double v3 = dx3*dx3 + dy3*dy3; // ch-3 gradient
 
       // pick channel with strongest gradient
       if (v2 > v) {
@@ -142,7 +153,7 @@ mxArray *process(const mxArray *mximage, const mxArray *mxsbin) {
   }
 
   // compute energy in each block by summing over orientations
-  for (int o = 0; o < 9; o++) {
+  for (int o = 0; o < 9; o++) { // 9 orientations
     float *src1 = hist + o*blocks[0]*blocks[1];
     float *src2 = hist + (o+9)*blocks[0]*blocks[1];
     float *dst = norm;

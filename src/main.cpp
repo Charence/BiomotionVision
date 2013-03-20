@@ -8,6 +8,7 @@
 #include <opencv2/video/background_segm.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
+#include <opencv2/imgproc/imgproc_c.h>
 #include <opencv2/calib3d/calib3d.hpp>
 #include <opencv2/video/tracking.hpp>
 
@@ -204,13 +205,20 @@ static bool isHead(vector<cv::Point> contour, vector<cv::Point> bodyContour) {
 }
 
 static cv::Mat toPolar(cv::Mat src) {
-	cv::Mat dst;
-	cv::Mat mapX, mapY;
+	cv::Mat dst = cv::Mat::zeros(src.size(), src.type());
+	//cv::Mat mapX, mapY;
 
 	// create dst, mapX, mapY
-	dst.create(src.size(), src.type());
-	mapX.create(cv::Size(src.size().height, 360), src.type());
-	mapY.create(cv::Size(src.size().height, 360), src.type());
+	//dst.create(src.size(), src.type());
+	//mapX.create(cv::Size(src.size().height, 360), src.type());
+	//mapY.create(cv::Size(src.size().height, 360), src.type());
+
+	IplImage iplSrc = src;
+	IplImage iplDst = dst;
+
+	cvLogPolar(&iplSrc, &iplDst, cvPoint2D32f(src.size().width/2, src.size().height/2), 1.0f);
+
+	cv::imshow("test", dst);
 
 	return dst;
 }
@@ -226,7 +234,8 @@ static cv::Mat toPolar(cv::Mat src) {
  * Returns position of all people
  */
 static vector<cv::Mat> detectPeople(cv::Mat image) {
-	return detectPeopleSegment(image);
+	return detectPeopleClassify(image);
+	//return detectPeopleSegment(image);
 }
 
 /**
@@ -517,8 +526,10 @@ static vector<cv::Mat> detectPeopleSegment(cv::Mat image) {
  */
 static vector<cv::Mat> detectPeopleClassify(cv::Mat image) {
 	vector<cv::Mat> points;
-	// 
-	//cv::cvLogPolar(image, image
+
+	// to polar
+	toPolar(image);
+
 	return points;
 }
 
