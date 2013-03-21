@@ -1,5 +1,6 @@
 function demo()
 startup;
+addpath('../PolarRectangularConv0/PolarRectangularConv0.1/'); % add ImToPolar
 
 fprintf('compiling the code...');
 compile;
@@ -61,20 +62,24 @@ clf;
 if model.type == model_types.Grammar
   bs = [ds(:,1:4) bs];
 end
-showboxes(im, reduceboxes(model, bs(top,:)));
-disp('detections');
-disp('press any key to continue'); pause;
-disp('continuing...');
-
-if model.type == model_types.MixStar
-  % get bounding boxes
-  bbox = bboxpred_get(model.bboxpred, ds, reduceboxes(model, bs));
-  bbox = clipboxes(im, bbox);
-  top = nms(bbox, 0.5);
-  clf;
-  showboxes(im, bbox(top,:));
-  disp('bounding boxes');
+if length(bs) > 0 % CHARENCE
+  showboxes(im, reduceboxes(model, bs(top,:)));
+  disp('detections');
   disp('press any key to continue'); pause;
+  disp('continuing...');
+
+  if model.type == model_types.MixStar
+    % get bounding boxes
+    bbox = bboxpred_get(model.bboxpred, ds, reduceboxes(model, bs));
+    bbox = clipboxes(im, bbox);
+    top = nms(bbox, 0.5);
+    clf;
+    showboxes(im, bbox(top,:));
+    disp('bounding boxes');
+    disp('press any key to continue'); pause;
+  end
+else
+    fprint('Nothing found\n');
 end
 
 fprintf('\n');
