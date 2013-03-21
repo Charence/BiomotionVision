@@ -6,7 +6,7 @@ clear VOCopts
 % of the VOC2010 test set. You don't need to do anything special
 % to submit results for VOC2008-10.
 
-VOCopts.dataset='VOC2011';
+VOCopts.dataset='VOC2007';
 
 % get devkit directory with forward slashes
 devkitroot=strrep(fileparts(fileparts(mfilename('fullpath'))),'\','/');
