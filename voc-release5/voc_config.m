@@ -19,7 +19,7 @@ function conf = voc_config(varargin)
 % Please read the next few lines
 
 % Parent directory that everything (model cache, VOCdevkit) is under
-BASE_DIR    = '/var/tmp/rbg';
+BASE_DIR    = '/homes/cclw05/workspace/BiomotionVision';
 
 % PASCAL dataset year to use
 PASCAL_YEAR = '2007';
