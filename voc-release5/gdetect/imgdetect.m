@@ -28,7 +28,7 @@ while window.y + window.size < size(im, 1)
         end
         imshow(imP);
         % feature extraction and detection
-        pyra = featpyramid(imP, model); % image should be colour with double vals
+        pyra = featpyramid(im, model); % image should be colour with double vals
         [ds, bs, trees] = gdetect(pyra, model, thresh);
         % shift window across
         window.x = window.x + window.increment;
