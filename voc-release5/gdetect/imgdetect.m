@@ -12,24 +12,35 @@ function [ds, bs, trees] = imgdetect(im, model, thresh)
 im = color(im);
 
 % CHARENCE - setup sliding window
-window.size = 200;
+window.size = 400;
 window.increment = 10; %window.size/4;
 window.x = 1;
 window.y = 1;
+
+ds = [];
+bs = [];
+trees = [];
 
 while window.y + window.size < size(im, 1)
     while window.x + window.size < size(im, 2)
         % crop image and turn into polar form
         for i = 1:size(im, 3)
-            imW = im(window.y:window.y+window.size, window.x:window.x+window.size, i);
+            imW(:,:,i) = im(window.y:window.y+window.size, window.x:window.x+window.size, i);
             %imW = rgb2gray(imW);
-            imW = double(imW)/255.0;
-            imP(:,:,i) = ImToPolar(imW, 0, 1, window.size/2, 360);
+            %imW = double(imW)/255.0;
+            imP(:,:,i) = ImToPolar(imW(:,:,i), 0, 1, window.size/2, 360);
         end
-        imshow(imP);
+        figure(4);
+        imshow(imW);
         % feature extraction and detection
-        pyra = featpyramid(im, model); % image should be colour with double vals
-        [ds, bs, trees] = gdetect(pyra, model, thresh);
+        pyra = featpyramid(imW, model); % image should be colour with double vals
+        [dsW, bsW, treesW] = gdetect(pyra, model, thresh);
+        if ~isempty(bsW)
+            pause;
+        end
+        for i = 1:size(dsW, 1)
+            ds = [ds dsW+
+        end
         % shift window across
         window.x = window.x + window.increment;
     end

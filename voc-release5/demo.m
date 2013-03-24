@@ -79,7 +79,7 @@ if length(bs) > 0 % CHARENCE
     disp('press any key to continue'); pause;
   end
 else
-    fprint('Nothing found\n');
+    fprintf('Nothing found\n');
 end
 
 fprintf('\n');
