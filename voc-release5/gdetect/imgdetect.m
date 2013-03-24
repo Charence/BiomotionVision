@@ -39,8 +39,10 @@ while window.y + window.size < size(im, 1)
             pause;
         end
         for i = 1:size(dsW, 1)
-            ds = [ds dsW+
+            ds = [ds; dsW(i, :)+[1 0 1 0 0 0]*(window.x-1)+[0 1 0 1 0 0]*(window.y-1)];
         end
+	bs = [bs; bsW];
+	trees = [trees; treesW];
         % shift window across
         window.x = window.x + window.increment;
     end
