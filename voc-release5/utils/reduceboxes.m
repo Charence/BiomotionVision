@@ -44,5 +44,5 @@ for i = 1:maxc
   end
   % remove all unused filters
   tmp(:,del) = [];
-  b(I,:) = tmp;
+  b(I,:) = tmp; % CHARENCE dimension mismatch 38 vs 46
 end

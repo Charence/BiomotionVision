@@ -20,6 +20,7 @@ function conf = voc_config(varargin)
 
 % Parent directory that everything (model cache, VOCdevkit) is under
 BASE_DIR    = '/homes/cclw05/workspace/BiomotionVision';
+BASE_DIR    = '/Users/charence/Workspace/BiomotionVision';
 
 % PASCAL dataset year to use
 PASCAL_YEAR = '2007';
